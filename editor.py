@@ -1,6 +1,8 @@
 import curses
 import curses.ascii
 
+from buffer import BufferStream, StreamToList
+
 
 class Editor(object):
     def __init__(self, window):
@@ -83,7 +85,8 @@ class FileWin(object):
 
         try:
             self.f = open(filename, "r+b")
-            self.loadfile()
+            #self.loadfile()
+            self.editpad.loadfile(self.f)
         except IOError:
             self.f = None
             self.editpad.pad.addstr("*** ERROR ***: Could not open file")
@@ -180,7 +183,7 @@ class EditPad(object):
 
     def addch(self, ch):
         val = ord(ch)
-        s = intToHexStr(self, val)
+        s = intToHexStr(val)
 
         self._add_real_ch(ch)
         self.pad.addstr(s+" ")
@@ -203,9 +206,58 @@ class EditPad(object):
         self.pad.addstr(y, xpos, char)
         self.pad.move(y,x)
 
+    def loadfile(self, infile):
+        # Setup streams
+        st1 = BufferStream(TokenToBytes)
+        st2 = BufferStream(BytesToByteLine)
+        st3 = BufferStream(BytesToNormalStr)
+
+        data = StreamToList()
+        draw1 = StreamToDraw(self, 0)
+        draw2 = StreamToDraw(self, self.bytesPerLine*3 + 4)
+
+        st1.addOutputStream(st2)
+        st1.addOutputStream(st3)
+        st1.addOutputStream(data)
+
+        st2.addOutputStream(draw1)
+        st3.addOutputStream(draw2)
+
+        val = infile.read(self.bytesPerLine)
+        while val != '':
+            st1.push_token(val)
+            val = infile.read(self.bytesPerLine)
+
+        self.bytedata = data.data
+        self.pad.move(0,0)
 
 
-def intToHexStr(self, val):
+
+def TokenToBytes(token):
+    return bytes(token)
+
+def BytesToByteLine(token):
+    byteList = memoryview(token).tolist()
+    byteStrs = map(intToHexStr, byteList)
+    return ' '.join(byteStrs)
+
+def BytesToNormalStr(token):
+    byteList = memoryview(token).tolist()
+    byteStrs = map(curses.unctrl, byteList)
+    padded = map(_padTo3, byteStrs)
+    return ''.join(padded)
+
+# Helper for BytesToNormalStr
+def _padTo3(word):
+    while len(word) < 3:
+        word += ' '
+    return word
+    #for s in vals:
+    #    while len(s) < 3:
+    #        s += ' '
+    #    yield s
+
+def intToHexStr(val):
     if val > 255 or val < 0:
         return "XX"
 
@@ -221,6 +273,19 @@ def _itostr(val):
     val -= 10
     val += ord('A')
     return chr(val)
+
+class StreamToDraw(object):
+    def __init__(self, editpad, xpos):
+        self.editpad = editpad
+        self.xpos = xpos
+        self.linenum = 0
+
+    def push_token(self, token):
+        if self.linenum > self.editpad.numlines:
+            self.editpad._addline()
+        self.editpad.pad.move(self.linenum, self.xpos)
+        self.editpad.pad.addstr(token)
+        self.linenum += 1
 
 def embedwin(window, vgap, hgap, vgap2=None, hgap2=None):
     height, width = window.getmaxyx()
