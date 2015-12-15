@@ -1,6 +1,6 @@
 import curses
 import curses.ascii
-from editpad import EditPad
+from editpad import EditPad, EditPadConfig, CreateDefaultConfig
 
 from buffer import BufferStream, StreamToList
 
@@ -124,7 +124,8 @@ class FileWin(object):
         self.boxwin = embedwin(self.fullwin, 1, 0)
         self.boxwin.box()
 
-        self.editpad = EditPad(self.boxwin, 1)
+        config = CreateDefaultConfig()
+        self.editpad = EditPad(self.boxwin, 1, config)
 
         self.fullwin.refresh()
         self.editpad.refresh()

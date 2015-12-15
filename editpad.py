@@ -9,7 +9,9 @@ The EditPad is the main editor window for the hexeditor.
 It keeps track of data, scrolls, and draws it to the screen
 """
 class EditPad(object):
-    def __init__(self, refwin, padding, capacity=None):
+    def __init__(self, refwin, padding, config):
+        self.config = config
+
         ry, rx = refwin.getbegyx()
         rh, rw = refwin.getmaxyx()
 
@@ -18,16 +20,14 @@ class EditPad(object):
         self.viewH = rh - 2*padding
         self.viewW = rw - 2*padding
 
-        self.bytesPerLine = 8
-
         #TODO: fix this in a better way:
-        if self.viewW < self.bytesPerLine*6 + 6:
-            self.viewW = self.bytesPerLine*6 + 6
+        if self.viewW < self.config.bytesPerLine*6 + 6:
+            self.viewW = self.config.bytesPerLine*6 + 6
 
         self.xpos = 0
         self.ypos = 0
         self.numlines = 0
-        self.cap = 100 if capacity == None else capacity
+        self.cap = self.config.heightcapacity
 
 
         self.pad = curses.newpad(self.cap, self.viewW)
@@ -35,13 +35,6 @@ class EditPad(object):
         self.pad.scrollok(False)
 
         self.filedata = None
-
-        self._setupCols()
-
-
-    def _setupCols(self):
-        tw = 3*self.bytesPerLine
-        self.columns = [ (0, tw), (tw+4, 2*tw+4)]
 
     def refresh(self):
         self.pad.refresh(self.ypos, self.xpos, self.viewY, self.viewX, 
@@ -65,28 +58,20 @@ class EditPad(object):
     def loadfile(self, infile):
         self.filedata = FileBuffer(infile)
 
-        # Setup streams
-        st1 = BufferStream(fork_stream)
-        st2 = BufferStream(BytesToByteLine)
-        st3 = BufferStream(BytesToNormalStr)
+        stfork = BufferStream(fork_stream)
 
-        draw1 = StreamToDraw(self, 0)
-        draw2 = StreamToDraw(self, 1)
+        for stin, stout, col in self.config.streams:
+            stfork.addOutputStream(stin)
+            stdraw = StreamToDraw(self, col)
+            stout.addOutputStream(stdraw)
 
-        # Connect them
-        st1.addOutputStream(st2)
-        st1.addOutputStream(st3)
-
-        st2.addOutputStream(draw1)
-        st3.addOutputStream(draw2)
-
-        # Write data
-        self.filedata.dumpToStream(st1, width=self.bytesPerLine)
+        self.filedata.dumpToStream(stfork,
+            width=self.config.bytesPerLine)
 
         self.pad.move(0,0)
 
     def drawstr(self, linenum, column, val):
-        colstart, colend = self.columns[column]
+        colstart, colend = self.config.columns[column]
         colsize = colend - colstart
         if len(val) > colsize:
             raise IndexError("string given is too large for the specified column\n\tSize available: %s, Received: %s" % (colsize,len(val)))
@@ -141,5 +126,37 @@ class StreamToDraw(object):
     def push_token(self, token):
         self.editpad.drawstr(self.linenum, self.column, token)
         self.linenum += 1
+
+
+############## Edit Pad Config #################
+class EditPadConfig(object):
+    def __init__(self, bytesPerLine=8, heightcapacity=100):
+        self.bytesPerLine = 8
+        self.heightcapacity = 100
+        self.columns = []
+        self.streams = []
+
+    def addcolumn(self, start, end):
+        self.columns.append((start, end))
+
+    def addstream(self, instream, outstream, column):
+        self.streams.append((instream, outstream, column))
+
+def CreateDefaultConfig():
+    config = EditPadConfig()
+
+    tw = 3*config.bytesPerLine
+    config.addcolumn(0,tw)
+    config.addcolumn(tw+4,2*tw+4)
+
+    st1 = BufferStream(BytesToByteLine)
+    st2 = BufferStream(BytesToNormalStr)
+
+    config.addstream(st1, st1, 0)
+    config.addstream(st2, st2, 1)
+
+    return config
+
+
 
 
