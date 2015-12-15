@@ -1,24 +1,3 @@
-
-#class PadBuffer(object):
-#    def __init__(self, width, parse_func):
-#        self.parse_func = parse_func
-#        self.chars = []
-#        self.hasline = False
-#        self.linenum = 0
-#        self.linelength = 0
-#        self.width = width
-#
-#    def addchar(self, char):
-#        val, newline = self.parse_func(char)
-#        self.linelength += len(val)
-#        self.chars.append(val)
-#
-#        if self.linelength >= self.width or newline:
-#            self.hasline = True
-#
-#class PadBuffer(object):
-#    def __init__(self, buff
-
 # BufferStream represents a push-based stream of data.
 # A bufferstream is given a processing function that
 #   turns the flow of input tokens into output tokens
@@ -46,3 +25,20 @@ class StreamToList(object):
     def push_token(self, token):
         self.data.append(token)
 
+
+# Currently doesn't do much. This is an abstraction so
+#   that it is easy to change how file access works in
+#   the future
+class FileBuffer(object):
+    def __init__(self, infile):
+        self.infile = infile
+
+    def dumpToStream(self, stream, width=8):
+        self.infile.seek(0)
+        val = self.infile.read(width)
+        while val != '':
+            stream.push_token(bytes(val))
+            val = self.infile.read(width)
+
+def fork_stream(token):
+    return token

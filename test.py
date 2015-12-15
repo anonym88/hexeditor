@@ -2,7 +2,7 @@ import curses
 import curses.ascii
 import curses.textpad
 
-
+	
 
 def process(val, screen):
     #if not curses.ascii.isctrl(val):
