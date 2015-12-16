@@ -1,7 +1,8 @@
 import curses
 import curses.ascii
 from buffer import BufferStream, StreamToList, fork_stream
-from buffer import FileBuffer
+from buffer import FileBuffer, ColumnBuffer
+from itertools import izip_longest, imap
 
 
 """
@@ -34,7 +35,9 @@ class EditPad(object):
         self.pad.keypad(True)
         self.pad.scrollok(False)
 
-        self.filedata = None
+        self.buffers = [ ColumnBuffer(i, self) for
+            i in xrange(len(self.config.columns)) ]
+
 
     def refresh(self):
         self.pad.refresh(self.ypos, self.xpos, self.viewY, self.viewX, 
@@ -60,13 +63,16 @@ class EditPad(object):
 
         stfork = BufferStream(fork_stream)
 
-        for stin, stout, col in self.config.streams:
+        for index, val in enumerate(self.config.streams):
+            stin, stout, col  = val
             stfork.addOutputStream(stin)
-            stdraw = StreamToDraw(self, col)
+            stdraw = self.buffers[index] #StreamToDraw(self, col)
             stout.addOutputStream(stdraw)
 
         self.filedata.dumpToStream(stfork,
             width=self.config.bytesPerLine)
+
+        self.redrawbuffers()
 
         self.pad.move(0,0)
 
@@ -78,6 +84,19 @@ class EditPad(object):
 
         self._setlines(linenum)
         self.pad.addstr(linenum, colstart, val)
+
+    # Draw the contents of these buffers to the pad
+    def redrawbuffers(self):
+        #zipiter is an iterator for side-by-side lines
+        zipiter = izip_longest(*self.buffers)
+        curline = 0
+        for alllines in zipiter:
+            #alllines is a tuple of each buffer's line
+            maxlen = max(map(len, alllines))
+            for col, lines in enumerate(alllines):
+                for lineoffset, line in enumerate(lines):
+                    self.drawstr(curline+lineoffset, col, line)
+            curline += maxlen
 
 
 ####### Stream Functions ########
@@ -98,6 +117,16 @@ def _padTo3(word):
     while len(word) < 3:
         word += ' '
     return word
+
+class BytesToLineNum(object):
+    def __init__(self, bytesPerLine):
+        self.bytesPerLine = bytesPerLine
+        self.linenum = 0
+
+    def __call__(self, token):
+        self.linenum += 1
+        val = (self.linenum-1)*self.bytesPerLine
+        return str(val)
 
 def intToHexStr(val):
     if val > 255 or val < 0:
@@ -148,12 +177,15 @@ def CreateDefaultConfig():
     tw = 3*config.bytesPerLine
     config.addcolumn(0,tw)
     config.addcolumn(tw+4,2*tw+4)
+    config.addcolumn(2*tw+8, 2*tw+12)
 
     st1 = BufferStream(BytesToByteLine)
     st2 = BufferStream(BytesToNormalStr)
+    st3 = BufferStream(BytesToLineNum(config.bytesPerLine))
 
     config.addstream(st1, st1, 0)
     config.addstream(st2, st2, 1)
+    config.addstream(st3, st3, 2)
 
     return config
 

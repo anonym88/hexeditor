@@ -66,7 +66,6 @@ class SelectFileWin(object):
 
     def process(self):
         curses.echo()
-        #curses.nocbreak()
         val = self.window.getstr()
         f = FileWin(val)
         editor.SetActive(f)

@@ -42,3 +42,30 @@ class FileBuffer(object):
 
 def fork_stream(token):
     return token
+
+class ColumnBuffer(object):
+    def __init__(self, colid, editpad):
+        self.colid = colid
+        self.editpad = editpad
+        self.lines = []
+
+    def push_token(self, token):
+        if isinstance(token, str):
+            token = [ token ]
+        self.lines.append(token)
+
+    def draw(self):
+        for linenum, line in enumerate(self.lines):
+            editpad.drawstr(linenum, self.colid, line)
+
+    def __len__(self):
+        return len(self.lines)
+
+    def __getitem__(self, index):
+        return self.lines[index]
+
+    def __iter__(self):
+        return iter(self.lines)
+
+
+
