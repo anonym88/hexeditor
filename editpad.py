@@ -36,7 +36,7 @@ class EditPad(object):
         self.pad.scrollok(False)
 
         self.buffers = [ ColumnBuffer(i, self) for
-            i in xrange(len(self.config.columns)) ]
+            i in xrange(len(self.config)) ]
 
 
     def refresh(self):
@@ -72,6 +72,8 @@ class EditPad(object):
         self.filedata.dumpToStream(stfork,
             width=self.config.bytesPerLine)
 
+        self.recomputecols()
+
         self.redrawbuffers()
 
         self.pad.move(0,0)
@@ -97,6 +99,17 @@ class EditPad(object):
                 for lineoffset, line in enumerate(lines):
                     self.drawstr(curline+lineoffset, col, line)
             curline += maxlen
+
+    # Computes the width of each column, and then sets up the columns
+    def recomputecols(self):
+        lens = []
+        for buff in self.buffers:
+            # flatten the list of lists of lines
+            lines = _flatten(buff)
+            maxlen = max(imap(len, lines))
+            lens.append(maxlen)
+        self.config.columnlens = lens
+        self.config.computecolumns()
 
 
 ####### Stream Functions ########
@@ -163,25 +176,37 @@ class EditPadConfig(object):
         self.bytesPerLine = 8
         self.heightcapacity = 100
         self.columns = []
+        self.columngaps = []
+        self.columnlens = []
         self.streams = []
 
-    def addcolumn(self, start, end):
-        self.columns.append((start, end))
+    def addcolumn(self, gap):
+        self.columngaps.append(gap)
 
     def addstream(self, instream, outstream, column):
         self.streams.append((instream, outstream, column))
 
+    def computecolumns(self):
+        assert(len(self.columnlens) == len(self.columngaps))
+        offset = 0
+        for l,g in zip(self.columnlens, self.columngaps):
+            val = (offset, offset+l)
+            self.columns.append(val)
+            offset += l + g
+
+    def __len__(self):
+        return len(self.columngaps)
+
 def CreateDefaultConfig():
     config = EditPadConfig()
 
-    tw = 3*config.bytesPerLine
-    config.addcolumn(0,tw)
-    config.addcolumn(tw+4,2*tw+4)
-    config.addcolumn(2*tw+8, 2*tw+12)
+    config.addcolumn(2)
+    config.addcolumn(4)
+    config.addcolumn(4)
 
-    st1 = BufferStream(BytesToByteLine)
-    st2 = BufferStream(BytesToNormalStr)
-    st3 = BufferStream(BytesToLineNum(config.bytesPerLine))
+    st1 = BufferStream(BytesToLineNum(config.bytesPerLine))
+    st2 = BufferStream(BytesToByteLine)
+    st3 = BufferStream(BytesToNormalStr)
 
     config.addstream(st1, st1, 0)
     config.addstream(st2, st2, 1)
@@ -189,6 +214,10 @@ def CreateDefaultConfig():
 
     return config
 
+def _flatten(iterable):
+    for inner in iterable:
+        for val in inner:
+            yield val
 
 
 
