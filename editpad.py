@@ -21,10 +21,6 @@ class EditPad(object):
         self.viewH = rh - 2*padding
         self.viewW = rw - 2*padding
 
-        #TODO: fix this in a better way:
-        if self.viewW < self.config.bytesPerLine*6 + 6:
-            self.viewW = self.config.bytesPerLine*6 + 6
-
         self.xpos = 0
         self.ypos = 0
         self.numlines = 0
@@ -35,7 +31,7 @@ class EditPad(object):
         self.pad.keypad(True)
         self.pad.scrollok(False)
 
-        self.buffers = [ ColumnBuffer(i, self) for
+        self.buffers = [ ColumnBuffer() for
             i in xrange(len(self.config)) ]
 
 
@@ -78,7 +74,7 @@ class EditPad(object):
 
         self.pad.move(0,0)
 
-    def drawstr(self, linenum, column, val):
+    def _drawstr(self, linenum, column, val):
         colstart, colend = self.config.columns[column]
         colsize = colend - colstart
         if len(val) > colsize:
@@ -97,7 +93,7 @@ class EditPad(object):
             maxlen = max(map(len, alllines))
             for col, lines in enumerate(alllines):
                 for lineoffset, line in enumerate(lines):
-                    self.drawstr(curline+lineoffset, col, line)
+                    self._drawstr(curline+lineoffset, col, line)
             curline += maxlen
 
     # Computes the width of each column, and then sets up the columns
@@ -159,16 +155,6 @@ def _itostr(val):
     val += ord('A')
     return chr(val)
 
-class StreamToDraw(object):
-    def __init__(self, editpad, column):
-        self.editpad = editpad
-        self.column = column
-        self.linenum = 0
-
-    def push_token(self, token):
-        self.editpad.drawstr(self.linenum, self.column, token)
-        self.linenum += 1
-
 
 ############## Edit Pad Config #################
 class EditPadConfig(object):
@@ -214,6 +200,7 @@ def CreateDefaultConfig():
 
     return config
 
+# takes iter<iter<thing>> and flattens to iter<thing>
 def _flatten(iterable):
     for inner in iterable:
         for val in inner:

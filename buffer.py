@@ -44,19 +44,13 @@ def fork_stream(token):
     return token
 
 class ColumnBuffer(object):
-    def __init__(self, colid, editpad):
-        self.colid = colid
-        self.editpad = editpad
+    def __init__(self):
         self.lines = []
 
     def push_token(self, token):
         if isinstance(token, str):
             token = [ token ]
         self.lines.append(token)
-
-    def draw(self):
-        for linenum, line in enumerate(self.lines):
-            editpad.drawstr(linenum, self.colid, line)
 
     def __len__(self):
         return len(self.lines)
