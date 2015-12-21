@@ -108,6 +108,54 @@ class EditPad(object):
         self.config.computecolumns()
 
 
+class BufferManager(object):
+    def __init__(self, numcolumns):
+        self.buffers = [ ColumnBuffer() for i in xrange(numcolumns) ]
+        self.lens = [ 0 for i in xrange(numcolumns) ]
+        self.reallines = []
+
+    # Hookup the streams to the correct buffers
+    def init_streams(self, streams):
+        for index, stream in enumerate(streams):
+            stream.addOutputStream(self.buffers[index])
+
+    def clear(self):
+        for buff in self.buffers:
+            buff.clear()
+
+    def lineToScreen(self):
+        pass
+
+    def screenToLine(self):
+        pass
+
+    def getBuffers(self):
+        return self.buffers
+
+    def _computemaxlen(self, index):
+        buff = self.buffers[index]
+        lines = _flatten(buff)
+        maxlen = max(imap(len, lines))
+        self.lens[index] = maxlen
+
+    def computelens(self):
+        for i in xrange(len(self.buffers)):
+            self._computemaxlen(i)
+
+    def draw(self, editpad):
+        zipiter = izip_longest(*self.buffers)
+        curline = 0
+        for alllines in zipiter:
+            #alllines is a tuple of each buffer's line
+            maxlen = max(imap(len, alllines))
+            for col, lines in enumerate(alllines):
+                for lineoffset, line in enumerate(lines):
+                    editpad._drawstr(curline+lineoffset, col, line)
+            curline += maxlen
+
+
+
+
 ####### Stream Functions ########
 
 def BytesToByteLine(token):

@@ -52,6 +52,9 @@ class ColumnBuffer(object):
             token = [ token ]
         self.lines.append(token)
 
+    def clear(self):
+        self.lines = []
+
     def __len__(self):
         return len(self.lines)
 
@@ -60,6 +63,5 @@ class ColumnBuffer(object):
 
     def __iter__(self):
         return iter(self.lines)
-
 
 
