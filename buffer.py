@@ -33,12 +33,18 @@ class FileBuffer(object):
     def __init__(self, infile):
         self.infile = infile
 
-    def dumpToStream(self, stream, width=8):
-        self.infile.seek(0)
-        val = self.infile.read(width)
-        while val != '':
+    def dumpToStream(self, stream, start, end, width=8):
+        self.infile.seek(start)
+        remaining = end - start
+
+        toread = width if remaining > width else remaining
+        val = self.infile.read(toread)
+        while val != '' and remaining > 0:
             stream.push_token(bytes(val))
-            val = self.infile.read(width)
+            remaining -= width
+
+            toread = width if remaining > width else remaining
+            val = self.infile.read(toread)
 
 def fork_stream(token):
     return token

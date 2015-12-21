@@ -31,8 +31,7 @@ class EditPad(object):
         self.pad.keypad(True)
         self.pad.scrollok(False)
 
-        self.buffers = [ ColumnBuffer() for
-            i in xrange(len(self.config)) ]
+        self.buffers = BufferManager(self.config.columngaps)
 
 
     def refresh(self):
@@ -57,22 +56,29 @@ class EditPad(object):
     def loadfile(self, infile):
         self.filedata = FileBuffer(infile)
 
+        self.buffers.clear()
+
         stfork = BufferStream(fork_stream)
 
+        bufferstreams = self.buffers.getBuffers()
         for index, val in enumerate(self.config.streams):
             stin, stout, col  = val
             stfork.addOutputStream(stin)
-            stdraw = self.buffers[index] #StreamToDraw(self, col)
-            stout.addOutputStream(stdraw)
+            stout.addOutputStream(bufferstreams[index])
 
-        self.filedata.dumpToStream(stfork,
+        size = 2*self.viewH*self.config.bytesPerLine
+        self.filedata.dumpToStream(stfork, 0, size,
             width=self.config.bytesPerLine)
 
-        self.recomputecols()
-
-        self.redrawbuffers()
+        self.buffers.computelens()
+        self.buffers.draw(self)
 
         self.pad.move(0,0)
+
+    def drawstr(self, ypos, xpos, val):
+        self._setlines(ypos)
+        self.pad.addstr(ypos, xpos, val)
+
 
     def _drawstr(self, linenum, column, val):
         colstart, colend = self.config.columns[column]
@@ -109,7 +115,9 @@ class EditPad(object):
 
 
 class BufferManager(object):
-    def __init__(self, numcolumns):
+    def __init__(self, columngaps):
+        numcolumns = len(columngaps)
+        self.columngaps = columngaps
         self.buffers = [ ColumnBuffer() for i in xrange(numcolumns) ]
         self.lens = [ 0 for i in xrange(numcolumns) ]
         self.reallines = []
@@ -142,6 +150,12 @@ class BufferManager(object):
         for i in xrange(len(self.buffers)):
             self._computemaxlen(i)
 
+        self.columns = []
+        val = 0
+        for i in xrange(len(self.buffers)):
+            self.columns.append(val)
+            val += self.lens[i] + self.columngaps[i]
+
     def draw(self, editpad):
         zipiter = izip_longest(*self.buffers)
         curline = 0
@@ -150,9 +164,10 @@ class BufferManager(object):
             maxlen = max(imap(len, alllines))
             for col, lines in enumerate(alllines):
                 for lineoffset, line in enumerate(lines):
-                    editpad._drawstr(curline+lineoffset, col, line)
+                    yval = curline + lineoffset
+                    xval = self.columns[col]
+                    editpad.drawstr(yval, xval, line)
             curline += maxlen
-
 
 
 
