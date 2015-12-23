@@ -99,8 +99,8 @@ class EditPad(object):
         vend = py + self.viewH
 
         vend_f = vend * self.config.bytesPerLine # TODO: Needs multiline adjust
-        if vend_f >= len(self.filedata):
-            vend = (len(self.filedata) - 1) // self.config.bytesPerLine
+        if vend_f > len(self.filedata):
+            vend = len(self.filedata) // self.config.bytesPerLine
         vstart = vend - self.viewH
 
         if vstart < 0:
@@ -132,7 +132,7 @@ class EditPad(object):
 
         flen = len(self.filedata)
         if file_start < 0: file_start = 0
-        if file_end >= flen: file_end = flen - 1
+        if file_end > flen: file_end = flen
 
         self.filewindow = (file_start, file_end)
 
