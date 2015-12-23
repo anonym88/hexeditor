@@ -41,17 +41,7 @@ class EditPad(object):
             self.viewY + self.viewH - 1, self.viewX + self.viewW - 1)
 
     def scroll(self, val):
-        self.ypos += val
-        if self.ypos < 0:
-            self.ypos = 0
-        if self.ypos > self.numlines:
-            self.ypos = self.numlines
-
-        file_start, file_end = self.filewindow
-        view_start = file_start + self.ypos
-        view_end = view_start + self.viewH
-        if view_start <= file_start or view_end >= file_end:
-            self.do_move_window_pos(view_start)
+        self.move_vwindow(val)
 
     def _setlines(self, linenum):
         if linenum <= self.numlines:
@@ -76,50 +66,83 @@ class EditPad(object):
             stout.addOutputStream(bufferstreams[index])
 
         self.do_move_window_pos(0)
-        return
-
-
-        size = 2*self.viewH*self.config.bytesPerLine
-        self.filedata.dumpToStream(stfork, 0, size,
-            width=self.config.bytesPerLine)
-
-        self.buffers.computelens()
-        self.buffers.draw(self)
-
-        self.pad.move(0,0)
 
     def drawstr(self, ypos, xpos, val):
         self._setlines(ypos)
         self.pad.addstr(ypos, xpos, val)
 
     def load_file_piece(self, start, end):
+        # All in file-space
+        self.numlines = 0
+        self.pad.clear()
         self.buffers.clear()
         self.filedata.dumpToStream(self.forkstream, start, end,
             width=self.config.bytesPerLine)
 
-        self.buffers.computelens()
+        try:
+            self.buffers.computelens()
+        except ValueError:
+            msg = "Data:\nfilewindow: %s\nload pos: %s\nypos: %s, numlines: %s"
+            fullmsg= msg % (str(self.filewindow), str((start, end)), str(self.ypos), str(self.numlines))
+            raise Exception(fullmsg)
         self.buffers.draw(self)
+
+    def move_vwindow(self, amount):
+        # In file-space
+        fstart_f, fend_f = self.filewindow
+        # Convert to pad-space # TODO: needs multiline adjust
+        fstart = fstart_f // self.config.bytesPerLine
+        fend = fend_f // self.config.bytesPerLine
+        # In pad-space
+
+        py = self.ypos + amount + fstart
+        vend = py + self.viewH
+
+        vend_f = vend * self.config.bytesPerLine # TODO: Needs multiline adjust
+        if vend_f >= len(self.filedata):
+            vend = (len(self.filedata) - 1) // self.config.bytesPerLine
+        vstart = vend - self.viewH
+
+        if vstart < 0:
+            vstart = 0
+            vend = vstart + self.viewH
+
+        if vstart < fstart or vend >= fend:
+            vstart_f = vstart * self.config.bytesPerLine
+            self.do_move_window_pos(vstart_f)
+        else:
+            self.ypos = vstart - fstart
+
+        self.pad.addstr(self.ypos, 60, str((vstart, vend)))
+        self.pad.addstr(self.ypos, 75, str((fstart, fend)))
+        self.pad.addstr(self.ypos, 90, str(self.ypos))
+
 
     def do_move_window_pos(self, start):
         # Loads a new window of data
         # Ensures that there is a buffer of lines loaded
         #   arounded the window that will be loaded
         # Start is the line that the view will start on
-        line_start = start - self.viewH
-        if line_start < 0: line_start = 0
-        line_end = start + 2* self.viewH
-        file_start = line_start * self.config.bytesPerLine
-        file_end = line_end * self.config.bytesPerLine
 
-        temp = self.filewindow
-        self.filewindow = (line_start, line_end)
-        self.ypos = start - line_start
+        # This is all by default in file-space
 
-        try:
-            self.load_file_piece(file_start, file_end)
-        except ValueError:
-            raise Exception("Doing stuff - prev filewindow: %s, move to: %s" % (temp, start))
+        windowsize = self.viewH * self.config.bytesPerLine
+        file_start = start - windowsize
+        file_end = start + 2*windowsize
 
+        flen = len(self.filedata)
+        if file_start < 0: file_start = 0
+        if file_end >= flen: file_end = flen - 1
+
+        self.filewindow = (file_start, file_end)
+
+        # since the file needs to be reloaded, the pad is
+        #   redrawn and we need to move ypos
+        self.ypos = (start - file_start) // self.config.bytesPerLine
+        # TODO: above line completely breaks when multiline
+        #   data is in buffers
+
+        self.load_file_piece(file_start, file_end)
 
 
 class BufferManager(object):

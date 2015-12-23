@@ -1,3 +1,5 @@
+import os
+
 # BufferStream represents a push-based stream of data.
 # A bufferstream is given a processing function that
 #   turns the flow of input tokens into output tokens
@@ -32,6 +34,7 @@ class StreamToList(object):
 class FileBuffer(object):
     def __init__(self, infile):
         self.infile = infile
+        self._flen = None
 
     def dumpToStream(self, stream, start, end, width=8):
         self.infile.seek(start)
@@ -45,6 +48,14 @@ class FileBuffer(object):
 
             toread = width if remaining > width else remaining
             val = self.infile.read(toread)
+
+    def __len__(self):
+        if self._flen is None:
+            temp = self.infile.tell()
+            self.infile.seek(0, os.SEEK_END)
+            self._flen = self.infile.tell()
+            self.infile.seek(temp)
+        return self._flen
 
 def fork_stream(token):
     return token
