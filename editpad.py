@@ -33,6 +33,8 @@ class EditPad(object):
 
         self.buffers = BufferManager(self.config.columngaps)
 
+        self.filewindow = (0,0)
+
 
     def refresh(self):
         self.pad.refresh(self.ypos, self.xpos, self.viewY, self.viewX, 
@@ -44,6 +46,12 @@ class EditPad(object):
             self.ypos = 0
         if self.ypos > self.numlines:
             self.ypos = self.numlines
+
+        file_start, file_end = self.filewindow
+        view_start = file_start + self.ypos
+        view_end = view_start + self.viewH
+        if view_start <= file_start or view_end >= file_end:
+            self.do_move_window_pos(view_start)
 
     def _setlines(self, linenum):
         if linenum <= self.numlines:
@@ -59,12 +67,17 @@ class EditPad(object):
         self.buffers.clear()
 
         stfork = BufferStream(fork_stream)
+        self.forkstream = stfork
 
         bufferstreams = self.buffers.getBuffers()
         for index, val in enumerate(self.config.streams):
             stin, stout, col  = val
             stfork.addOutputStream(stin)
             stout.addOutputStream(bufferstreams[index])
+
+        self.do_move_window_pos(0)
+        return
+
 
         size = 2*self.viewH*self.config.bytesPerLine
         self.filedata.dumpToStream(stfork, 0, size,
@@ -79,39 +92,34 @@ class EditPad(object):
         self._setlines(ypos)
         self.pad.addstr(ypos, xpos, val)
 
+    def load_file_piece(self, start, end):
+        self.buffers.clear()
+        self.filedata.dumpToStream(self.forkstream, start, end,
+            width=self.config.bytesPerLine)
 
-    def _drawstr(self, linenum, column, val):
-        colstart, colend = self.config.columns[column]
-        colsize = colend - colstart
-        if len(val) > colsize:
-            raise IndexError("string given is too large for the specified column\n\tSize available: %s, Received: %s" % (colsize,len(val)))
+        self.buffers.computelens()
+        self.buffers.draw(self)
 
-        self._setlines(linenum)
-        self.pad.addstr(linenum, colstart, val)
+    def do_move_window_pos(self, start):
+        # Loads a new window of data
+        # Ensures that there is a buffer of lines loaded
+        #   arounded the window that will be loaded
+        # Start is the line that the view will start on
+        line_start = start - self.viewH
+        if line_start < 0: line_start = 0
+        line_end = start + 2* self.viewH
+        file_start = line_start * self.config.bytesPerLine
+        file_end = line_end * self.config.bytesPerLine
 
-    # Draw the contents of these buffers to the pad
-    def redrawbuffers(self):
-        #zipiter is an iterator for side-by-side lines
-        zipiter = izip_longest(*self.buffers)
-        curline = 0
-        for alllines in zipiter:
-            #alllines is a tuple of each buffer's line
-            maxlen = max(map(len, alllines))
-            for col, lines in enumerate(alllines):
-                for lineoffset, line in enumerate(lines):
-                    self._drawstr(curline+lineoffset, col, line)
-            curline += maxlen
+        temp = self.filewindow
+        self.filewindow = (line_start, line_end)
+        self.ypos = start - line_start
 
-    # Computes the width of each column, and then sets up the columns
-    def recomputecols(self):
-        lens = []
-        for buff in self.buffers:
-            # flatten the list of lists of lines
-            lines = _flatten(buff)
-            maxlen = max(imap(len, lines))
-            lens.append(maxlen)
-        self.config.columnlens = lens
-        self.config.computecolumns()
+        try:
+            self.load_file_piece(file_start, file_end)
+        except ValueError:
+            raise Exception("Doing stuff - prev filewindow: %s, move to: %s" % (temp, start))
+
 
 
 class BufferManager(object):
@@ -120,7 +128,6 @@ class BufferManager(object):
         self.columngaps = columngaps
         self.buffers = [ ColumnBuffer() for i in xrange(numcolumns) ]
         self.lens = [ 0 for i in xrange(numcolumns) ]
-        self.reallines = []
 
     # Hookup the streams to the correct buffers
     def init_streams(self, streams):
@@ -196,9 +203,10 @@ class BytesToLineNum(object):
         self.linenum = 0
 
     def __call__(self, token):
-        self.linenum += 1
-        val = (self.linenum-1)*self.bytesPerLine
-        return str(val)
+        #self.linenum += 1
+        #val = (self.linenum-1)*self.bytesPerLine
+        #return str(val)
+        return "??"
 
 def intToHexStr(val):
     if val > 255 or val < 0:
