@@ -88,11 +88,49 @@ class EditPad(object):
         self.buffers.draw(self)
 
     def move_vwindow(self, amount):
+        fstart, fend = self.filewindow
+
+        curpos = fstart + self.ypos
+
+        if fend - fstart < self.viewH:
+            vstart = fstart
+            vend = fend
+        else:
+            vstart = curpos + amount
+            if vstart < 0: vstart = 0
+
+            vend = vstart + self.viewH
+
+            # The last line that has data
+            last_line = len(self.filedata) // self.config.bytesPerLine
+            hard_end = last_line + 1
+            if vend > hard_end:
+                vend = hard_end
+                vstart = vend - self.viewH
+
+        moved = False
+        if vstart < fstart or vend > fend:
+            self.do_move_window_pos(vstart)
+            # filewindow has changed now, so reload
+            fstart,fend = self.filewindow
+            moved = True
+
+        # Actually move!
+        self.ypos = vstart - fstart
+
+        self.pad.addstr(self.ypos, 60, str((vstart, vend)))
+        self.pad.addstr(self.ypos, 75, str((fstart, fend)))
+        self.pad.addstr(self.ypos, 85, str(self.ypos))
+        self.pad.addstr(self.ypos, 95, str(len(self.filedata)))
+        self.pad.addstr(self.ypos, 105, str(last_line))
+        self.pad.addstr(self.ypos, 112, str(moved))
+
+        return
         # In file-space
         fstart_f, fend_f = self.filewindow
         # Convert to pad-space # TODO: needs multiline adjust
         fstart = fstart_f // self.config.bytesPerLine
-        fend = fend_f // self.config.bytesPerLine
+        fend = ((fend_f - 1) // self.config.bytesPerLine) + 1
         # In pad-space
 
         py = self.ypos + amount + fstart
@@ -116,15 +154,35 @@ class EditPad(object):
         self.pad.addstr(self.ypos, 60, str((vstart, vend)))
         self.pad.addstr(self.ypos, 75, str((fstart, fend)))
         self.pad.addstr(self.ypos, 90, str(self.ypos))
+        self.pad.addstr(self.ypos, 100, str(len(self.filedata)))
 
 
     def do_move_window_pos(self, start):
         # Loads a new window of data
         # Ensures that there is a buffer of lines loaded
         #   arounded the window that will be loaded
-        # Start is the line that the view will start on
 
-        # This is all by default in file-space
+        # start: the file line that loading will be based off
+
+        margin = self.viewH
+        file_start = start - margin
+        file_end = start + self.viewH + margin
+
+        flen = len(self.filedata) // self.config.bytesPerLine
+        if file_start < 0: file_start = 0
+        if file_end > flen + 1: file_end = flen + 1
+        # Reasoning for + 1: file_end is a non-inclusive bound,
+        #   in order for the last line to be loaded it has to
+        #   be before file_end
+
+        self.filewindow = (file_start, file_end)
+
+        file_start_b = file_start * self.config.bytesPerLine
+        file_end_b = file_end * self.config.bytesPerLine
+
+        self.load_file_piece(file_start_b, file_end_b)
+
+        return
 
         windowsize = self.viewH * self.config.bytesPerLine
         file_start = start - windowsize
