@@ -102,7 +102,7 @@ class EditPad(object):
             vend = vstart + self.viewH
 
             # The last line that has data
-            last_line = len(self.filedata) // self.config.bytesPerLine
+            last_line = self._lastdataline()
             hard_end = last_line + 1
             if vend > hard_end:
                 vend = hard_end
@@ -125,38 +125,6 @@ class EditPad(object):
         self.pad.addstr(self.ypos, 105, str(last_line))
         self.pad.addstr(self.ypos, 112, str(moved))
 
-        return
-        # In file-space
-        fstart_f, fend_f = self.filewindow
-        # Convert to pad-space # TODO: needs multiline adjust
-        fstart = fstart_f // self.config.bytesPerLine
-        fend = ((fend_f - 1) // self.config.bytesPerLine) + 1
-        # In pad-space
-
-        py = self.ypos + amount + fstart
-        vend = py + self.viewH
-
-        vend_f = vend * self.config.bytesPerLine # TODO: Needs multiline adjust
-        if vend_f > len(self.filedata):
-            vend = len(self.filedata) // self.config.bytesPerLine
-        vstart = vend - self.viewH
-
-        if vstart < 0:
-            vstart = 0
-            vend = vstart + self.viewH
-
-        if vstart < fstart or vend >= fend:
-            vstart_f = vstart * self.config.bytesPerLine
-            self.do_move_window_pos(vstart_f)
-        else:
-            self.ypos = vstart - fstart
-
-        self.pad.addstr(self.ypos, 60, str((vstart, vend)))
-        self.pad.addstr(self.ypos, 75, str((fstart, fend)))
-        self.pad.addstr(self.ypos, 90, str(self.ypos))
-        self.pad.addstr(self.ypos, 100, str(len(self.filedata)))
-
-
     def do_move_window_pos(self, start):
         # Loads a new window of data
         # Ensures that there is a buffer of lines loaded
@@ -168,7 +136,7 @@ class EditPad(object):
         file_start = start - margin
         file_end = start + self.viewH + margin
 
-        flen = len(self.filedata) // self.config.bytesPerLine
+        flen = self._lastdataline()
         if file_start < 0: file_start = 0
         if file_end > flen + 1: file_end = flen + 1
         # Reasoning for + 1: file_end is a non-inclusive bound,
@@ -182,25 +150,13 @@ class EditPad(object):
 
         self.load_file_piece(file_start_b, file_end_b)
 
-        return
+    def _lastdataline(self):
+        last_byte = len(self.filedata)
+        last_line = last_byte // self.config.bytesPerLine
 
-        windowsize = self.viewH * self.config.bytesPerLine
-        file_start = start - windowsize
-        file_end = start + 2*windowsize
-
-        flen = len(self.filedata)
-        if file_start < 0: file_start = 0
-        if file_end > flen: file_end = flen
-
-        self.filewindow = (file_start, file_end)
-
-        # since the file needs to be reloaded, the pad is
-        #   redrawn and we need to move ypos
-        self.ypos = (start - file_start) // self.config.bytesPerLine
-        # TODO: above line completely breaks when multiline
-        #   data is in buffers
-
-        self.load_file_piece(file_start, file_end)
+        if last_byte % 8 == 0:
+            last_line -= 1
+        return last_line
 
 
 class BufferManager(object):
@@ -209,11 +165,6 @@ class BufferManager(object):
         self.columngaps = columngaps
         self.buffers = [ ColumnBuffer() for i in xrange(numcolumns) ]
         self.lens = [ 0 for i in xrange(numcolumns) ]
-
-    # Hookup the streams to the correct buffers
-    def init_streams(self, streams):
-        for index, stream in enumerate(streams):
-            stream.addOutputStream(self.buffers[index])
 
     def clear(self):
         for buff in self.buffers:
