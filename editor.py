@@ -85,7 +85,6 @@ class FileWin(object):
 
         try:
             self.f = open(filename, "r+b")
-            #self.loadfile()
             self.editpad.loadfile(self.f)
         except IOError:
             self.f = None
@@ -95,7 +94,7 @@ class FileWin(object):
 
     def process(self):
         self.editpad.refresh()
-        char = self.editpad.pad.getch()
+        char = self.editpad.getch()
 
         if self.f == None: # Failed to open the file
             editor.SetActive(editor.mainmenu)

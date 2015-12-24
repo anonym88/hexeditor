@@ -3,6 +3,7 @@ import curses.ascii
 from buffer import BufferStream, StreamToList, fork_stream
 from buffer import FileBuffer, ColumnBuffer
 from itertools import izip_longest, imap
+from padmanager import PadManager
 
 
 """
@@ -13,23 +14,9 @@ class EditPad(object):
     def __init__(self, refwin, padding, config):
         self.config = config
 
-        ry, rx = refwin.getbegyx()
-        rh, rw = refwin.getmaxyx()
-
-        self.viewX = rx + padding
-        self.viewY = ry + padding
-        self.viewH = rh - 2*padding
-        self.viewW = rw - 2*padding
-
-        self.xpos = 0
-        self.ypos = 0
-        self.numlines = 0
-        self.cap = self.config.heightcapacity
-
-
-        self.pad = curses.newpad(self.cap, self.viewW)
-        self.pad.keypad(True)
-        self.pad.scrollok(False)
+        self.padmanager = PadManager(refwin, padding, config.heightcapacity)
+        # This really needs to be in a more global position
+        self.viewH = self.padmanager.viewH
 
         self.buffers = BufferManager(self.config.columngaps)
 
@@ -37,19 +24,13 @@ class EditPad(object):
 
 
     def refresh(self):
-        self.pad.refresh(self.ypos, self.xpos, self.viewY, self.viewX, 
-            self.viewY + self.viewH - 1, self.viewX + self.viewW - 1)
+        self.padmanager.refresh()
 
     def scroll(self, val):
         self.move_vwindow(val)
 
-    def _setlines(self, linenum):
-        if linenum <= self.numlines:
-            return
-        self.numlines = linenum
-        if linenum >= self.cap:
-            self.cap = linenum*2
-            self.pad.resize(self.cap, self.viewW)
+    def getch(self):
+        return self.padmanager.pad.getch()
 
     def loadfile(self, infile):
         self.filedata = FileBuffer(infile)
@@ -65,32 +46,24 @@ class EditPad(object):
             stfork.addOutputStream(stin)
             stout.addOutputStream(bufferstreams[index])
 
-        self.do_move_window_pos(0)
-
-    def drawstr(self, ypos, xpos, val):
-        self._setlines(ypos)
-        self.pad.addstr(ypos, xpos, val)
+        self.move_fwindow(0)
+        self.padmanager.set_line(0)
 
     def load_file_piece(self, start, end):
-        # All in file-space
-        self.numlines = 0
-        self.pad.clear()
+        # start, end are in bytes
+        self.padmanager.clear()
         self.buffers.clear()
+
         self.filedata.dumpToStream(self.forkstream, start, end,
             width=self.config.bytesPerLine)
 
-        try:
-            self.buffers.computelens()
-        except ValueError:
-            msg = "Data:\nfilewindow: %s\nload pos: %s\nypos: %s, numlines: %s"
-            fullmsg= msg % (str(self.filewindow), str((start, end)), str(self.ypos), str(self.numlines))
-            raise Exception(fullmsg)
-        self.buffers.draw(self)
+        self.buffers.computelens()
+        self.buffers.draw(self.padmanager)
 
     def move_vwindow(self, amount):
         fstart, fend = self.filewindow
 
-        curpos = fstart + self.ypos
+        curpos = fstart + self.padmanager.get_line()
 
         if fend - fstart < self.viewH:
             vstart = fstart
@@ -110,22 +83,16 @@ class EditPad(object):
 
         moved = False
         if vstart < fstart or vend > fend:
-            self.do_move_window_pos(vstart)
+            self.move_fwindow(vstart)
             # filewindow has changed now, so reload
             fstart,fend = self.filewindow
             moved = True
 
         # Actually move!
-        self.ypos = vstart - fstart
+        ypos = vstart - fstart
+        self.padmanager.set_line(ypos)
 
-        self.pad.addstr(self.ypos, 60, str((vstart, vend)))
-        self.pad.addstr(self.ypos, 75, str((fstart, fend)))
-        self.pad.addstr(self.ypos, 85, str(self.ypos))
-        self.pad.addstr(self.ypos, 95, str(len(self.filedata)))
-        self.pad.addstr(self.ypos, 105, str(last_line))
-        self.pad.addstr(self.ypos, 112, str(moved))
-
-    def do_move_window_pos(self, start):
+    def move_fwindow(self, start):
         # Loads a new window of data
         # Ensures that there is a buffer of lines loaded
         #   arounded the window that will be loaded
