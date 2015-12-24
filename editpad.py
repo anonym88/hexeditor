@@ -22,6 +22,8 @@ class EditPad(object):
 
         self.filewindow = (0,0)
 
+        self._init_streams()
+
     def refresh(self):
         self.padmanager.refresh()
 
@@ -36,24 +38,16 @@ class EditPad(object):
 
         self.buffers.clear()
 
-        stfork = BufferStream(fork_stream)
-        self.forkstream = stfork
-
-        bufferstreams = self.buffers.getBuffers()
-        for index, val in enumerate(self.config.streams):
-            stin, stout, col  = val
-            stfork.addOutputStream(stin)
-            stout.addOutputStream(bufferstreams[index])
-
         self.move_fwindow(0)
         self.padmanager.set_line(0)
+
 
     def load_file_piece(self, start, end):
         # start, end are in bytes
         self.padmanager.clear()
         self.buffers.clear()
 
-        self.filedata.dumpToStream(self.forkstream, start, end,
+        self.filedata.dumpToStream(self.forkstream, self.linestream, start, end,
             width=self.config.bytesPerLine)
 
         self.buffers.computelens()
@@ -112,6 +106,23 @@ class EditPad(object):
             last_line -= 1
         return last_line
 
+    def _init_streams(self):
+        bufferstreams = self.buffers.getBuffers()
+
+        # Setup Main Streams
+        stfork = BufferStream(fork_stream)
+        self.forkstream = stfork
+
+        for stin, stout, buff in _streamzip(
+            self.config.streams[1:], bufferstreams[1:]):
+            stfork.addOutputStream(stin)
+            stout.addOutputStream(buff)
+
+        # Setup Line Num Stream
+        linein, lineout, _ = self.config.streams[0]
+        self.linestream = linein
+        lineout.addOutputStream(bufferstreams[0])
+
 
 def _fitwindow(outer, inner):
     ostart, oend = outer
@@ -130,6 +141,13 @@ def _fitwindow(outer, inner):
         return (oend - innergap, oend)
 
     return (istart, iend)
+
+def _streamzip(streampairs, bufferstreams):
+    assert(len(streampairs) == len(bufferstreams))
+    for i in xrange(len(streampairs)):
+        stin, stout, _ = streampairs[i]
+        buf = bufferstreams[i]
+        yield stin, stout, buf
 
 
 ####### Stream Functions ########
@@ -153,16 +171,8 @@ def _padTo3(word):
         word += ' '
     return word
 
-class BytesToLineNum(object):
-    def __init__(self, bytesPerLine):
-        self.bytesPerLine = bytesPerLine
-        self.linenum = 0
-
-    def __call__(self, token):
-        #self.linenum += 1
-        #val = (self.linenum-1)*self.bytesPerLine
-        #return str(val)
-        return "??"
+def IndexToLineNum(val):
+    return str(val)
 
 def intToHexStr(val):
     if val > 255 or val < 0:
@@ -217,7 +227,7 @@ def CreateDefaultConfig():
     config.addcolumn(4)
     config.addcolumn(4)
 
-    st1 = BufferStream(BytesToLineNum(config.bytesPerLine))
+    st1 = BufferStream(IndexToLineNum)
     st2 = BufferStream(BytesToByteLine)
     st3 = BufferStream(BytesToNormalStr)
 

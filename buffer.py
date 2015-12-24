@@ -28,7 +28,7 @@ class FileBuffer(object):
         self.infile = infile
         self._flen = None
 
-    def dumpToStream(self, stream, start, end, width=8):
+    def dumpToStream(self, stream, indexstream, start, end, width=8):
         self.infile.seek(start)
         remaining = end - start
 
@@ -36,7 +36,9 @@ class FileBuffer(object):
         val = self.infile.read(toread)
         while val != '' and remaining > 0:
             stream.push_token(bytes(val))
-            remaining -= width
+            indexstream.push_token(end - remaining)
+
+            remaining -= len(val)
 
             toread = width if remaining > width else remaining
             val = self.infile.read(toread)
