@@ -2,8 +2,6 @@ import curses
 import curses.ascii
 from editpad import EditPad, EditPadConfig, CreateDefaultConfig
 
-from buffer import BufferStream, StreamToList
-
 
 class Editor(object):
     def __init__(self, window):

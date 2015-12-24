@@ -19,14 +19,6 @@ class BufferStream(object):
             for s in self.streams:
                 s.push_token(new_token)
 
-# An output stream that turns input into a list
-class StreamToList(object):
-    def __init__(self):
-        self.data = []
-
-    def push_token(self, token):
-        self.data.append(token)
-
 
 # Currently doesn't do much. This is an abstraction so
 #   that it is easy to change how file access works in
@@ -57,8 +49,6 @@ class FileBuffer(object):
             self.infile.seek(temp)
         return self._flen
 
-def fork_stream(token):
-    return token
 
 class ColumnBuffer(object):
     def __init__(self):
