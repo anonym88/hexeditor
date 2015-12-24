@@ -64,28 +64,16 @@ class EditPad(object):
 
         curpos = fstart + self.padmanager.get_line()
 
-        if fend - fstart < self.viewH:
-            vstart = fstart
-            vend = fend
-        else:
-            vstart = curpos + amount
-            if vstart < 0: vstart = 0
+        pstart = curpos + amount
+        pend = pstart + self.viewH
+        file_end = self._lastdataline() + 1
 
-            vend = vstart + self.viewH
+        vstart, vend = _fitwindow((0, file_end), (pstart, pend))
 
-            # The last line that has data
-            last_line = self._lastdataline()
-            hard_end = last_line + 1
-            if vend > hard_end:
-                vend = hard_end
-                vstart = vend - self.viewH
-
-        moved = False
         if vstart < fstart or vend > fend:
             self.move_fwindow(vstart)
             # filewindow has changed now, so reload
             fstart,fend = self.filewindow
-            moved = True
 
         # Actually move!
         ypos = vstart - fstart
@@ -94,7 +82,7 @@ class EditPad(object):
     def move_fwindow(self, start):
         # Loads a new window of data
         # Ensures that there is a buffer of lines loaded
-        #   arounded the window that will be loaded
+        #   around the lines displayed
 
         # start: the file line that loading will be based off
 
@@ -124,6 +112,24 @@ class EditPad(object):
             last_line -= 1
         return last_line
 
+
+def _fitwindow(outer, inner):
+    ostart, oend = outer
+    istart, iend = inner
+
+    innergap = iend - istart
+    outergap = oend - ostart
+
+    if outergap < innergap:
+        return (ostart, oend)
+
+    if istart < ostart:
+        return (ostart, ostart + innergap)
+
+    if iend > oend:
+        return (oend - innergap, oend)
+
+    return (istart, iend)
 
 
 ####### Stream Functions ########
