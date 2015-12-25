@@ -156,7 +156,7 @@ def fork_stream(token):
 
 def BytesToByteLine(token):
     byteList = memoryview(token).tolist()
-    byteStrs = map(intToHexStr, byteList)
+    byteStrs = map(bytesToHex, byteList)
     return ' '.join(byteStrs)
 
 def BytesToNormalStr(token):
@@ -172,15 +172,29 @@ def _padTo3(word):
     return word
 
 def IndexToLineNum(val):
-    return str(val)
+    return '0x' + intToHexStr(val)
 
-def intToHexStr(val):
+def bytesToHex(val):
     if val > 255 or val < 0:
         return "XX"
 
     first = val // 16 # int division
     second = val % 16
     return _itostr(first) + _itostr(second)
+
+def intToHexStr(val):
+    s = ''
+
+    rem = val % 16
+    s = _itostr(rem) + s
+    val = val // 16
+
+    while val > 0:
+        rem = val % 16
+        s = _itostr(rem) + s
+        val = val // 16
+
+    return s
 
 # Helper for intToHexStr
 def _itostr(val):
@@ -223,7 +237,7 @@ class EditPadConfig(object):
 def CreateDefaultConfig():
     config = EditPadConfig()
 
-    config.addcolumn(2)
+    config.addcolumn(3)
     config.addcolumn(4)
     config.addcolumn(4)
 
