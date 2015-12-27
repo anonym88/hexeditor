@@ -62,7 +62,7 @@ class EditPad(object):
         vstart = ypos + 1
         vend = vstart + self.viewH
 
-        if self.buffers.screeninrange(vstart, vend):
+        if vend <= self.buffers.screenend():
             self.padmanager.set_line(vstart)
             return
 
@@ -72,9 +72,9 @@ class EditPad(object):
             # File window can't increase past end of file
             return
 
-        last_line = self.buffers.lineend() + fstart
+        last_line = fend
 
-        current_line = self.screenToLineSoft(ypos) + fstart
+        current_line = self.buffers.screenToLineSoft(ypos) + fstart
         self.move_fwindow(current_line)
 
         # Reload the now moved filewindow
