@@ -21,14 +21,8 @@ class BufferManager(object):
     def lineToScreenStart(self, line):
         return self.screenpos[line]
 
-    def lineToScreenEnd(self, line):
-        return self.screenpos[line+1] - 1
-
     def screenToLineSoft(self, screenLine):
         return bisect_right(self.screenpos, screenLine)
-
-    def screenToLineExact(self, screenLine):
-        return self.linepos[screenLine]
 
     def getBuffers(self):
         return self.buffers
@@ -78,17 +72,6 @@ class BufferManager(object):
 
     def lineend(self):
         return len(self.screenpos)
-
-    def screeninrange(self, start, end):
-        if start < 0 or end < 0:
-            return False
-
-        screenend = self.screenend()
-        if start > screenend or end > screenend:
-            return False
-
-        return True
-
 
 
 # takes iter<iter<thing>> and flattens to iter<thing>
