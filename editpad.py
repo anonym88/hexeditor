@@ -28,7 +28,10 @@ class EditPad(object):
         self.padmanager.refresh()
 
     def scroll(self, val):
-        self.move_vwindow(val)
+        if val == 1:
+            self.incr_vwindow()
+        elif val == -1:
+            self.decr_vwindow()
 
     def getch(self):
         return self.padmanager.pad.getch()
@@ -53,25 +56,61 @@ class EditPad(object):
         self.buffers.computelens()
         self.buffers.draw(self.padmanager)
 
-    def move_vwindow(self, amount):
+    def incr_vwindow(self):
+        ypos = self.padmanager.get_line()
+
+        vstart = ypos + 1
+        vend = vstart + self.viewH
+
+        if self.buffers.screeninrange(vstart, vend):
+            self.padmanager.set_line(vstart)
+            return
+
         fstart, fend = self.filewindow
 
-        curpos = fstart + self.padmanager.get_line()
+        if fend >= self._lastdataline() + 1:
+            # File window can't increase past end of file
+            return
 
-        pstart = curpos + amount
-        pend = pstart + self.viewH
-        file_end = self._lastdataline() + 1
+        last_line = self.buffers.lineend() + fstart
 
-        vstart, vend = _fitwindow((0, file_end), (pstart, pend))
+        current_line = self.screenToLineSoft(ypos) + fstart
+        self.move_fwindow(current_line)
 
-        if vstart < fstart or vend > fend:
-            self.move_fwindow(vstart)
-            # filewindow has changed now, so reload
-            fstart,fend = self.filewindow
+        # Reload the now moved filewindow
+        fstart, fend = self.filewindow
 
-        # Actually move!
-        ypos = vstart - fstart
-        self.padmanager.set_line(ypos)
+        last_screen = self.buffers.lineToScreenStart(last_line - fstart)
+        start_screen = last_screen - self.viewH + 1
+
+        self.padmanager.set_line(start_screen)
+
+    def decr_vwindow(self):
+        ypos = self.padmanager.get_line()
+
+        if ypos > 0:
+            self.padmanager.set_line(ypos - 1)
+            return
+
+        vstart = ypos - 1
+        vend = vstart + self.viewH
+
+        fstart, fend = self.filewindow
+
+        if fstart <= 0:
+            # File window can't decrease before start of file
+            return
+
+        current_line = fstart
+
+        self.move_fwindow(current_line)
+
+        # Reload the now moved filewindow
+        fstart, fend = self.filewindow
+
+        start_screen = self.buffers.lineToScreenStart(current_line - fstart)
+
+        self.padmanager.set_line(start_screen - 1)
 
     def move_fwindow(self, start):
         # Loads a new window of data
@@ -172,7 +211,7 @@ def _padTo3(word):
     return word
 
 def IndexToLineNum(val):
-    return '0x' + intToHexStr(val)
+    return ['0x' + intToHexStr(val), 'hi!']
 
 def bytesToHex(val):
     if val > 255 or val < 0:
