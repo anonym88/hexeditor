@@ -31,6 +31,17 @@ class EditPad(object):
         elif val == -1:
             self.decr_vwindow()
 
+    def goto(self, val):
+        try:
+            byte = int(val, 16)
+        except:
+            return
+
+        line = byte // self.config.bytesPerLine
+
+        if line >= 0 and line < len(self.filedata):
+            self.jump_vwindow(line)
+
     def getch(self):
         return self.padmanager.pad.getch()
 
@@ -102,6 +113,11 @@ class EditPad(object):
 
         start_screen = self.buffers.lineToScreenStart(current_line)
         self.padmanager.set_line(start_screen - 1)
+
+    def jump_vwindow(self, line):
+        self.move_fwindow(line)
+        start_screen = self.buffers.lineToScreenStart(line)
+        self.padmanager.set_line(start_screen)
 
     def move_fwindow(self, start):
         # Loads a new window of data

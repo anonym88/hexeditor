@@ -101,6 +101,7 @@ class FileWin(object):
         if char == ord('g'):
             t = Textbox(self.textwin, "Goto Line: ")
             val = t.gettext()
+            self.editpad.goto(val)
         return True
 
     def exit(self):
