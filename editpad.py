@@ -211,7 +211,7 @@ def _padTo3(word):
     return word
 
 def IndexToLineNum(val):
-    return ['0x' + intToHexStr(val), 'hi!']
+    return '0x' + intToHexStr(val)
 
 def bytesToHex(val):
     if val > 255 or val < 0:

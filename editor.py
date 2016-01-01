@@ -1,6 +1,7 @@
 import curses
 import curses.ascii
 from editpad import EditPad, EditPadConfig, CreateDefaultConfig
+from textbox import Textbox, popup
 
 
 class Editor(object):
@@ -56,23 +57,17 @@ class StartWin(object):
 
 class SelectFileWin(object):
     def __init__(self):
-        self.window = unbedwin(editor.mainwin, 5, 10)
-        self.window.clear()
-        self.window.box()
-        self.window.addstr(1,1,"File Path: ")
-        self.window.refresh()
+        window = unbedwin(editor.mainwin, 5, 10)
+        self.textbox = Textbox(window, "File Path: ")
 
     def process(self):
-        curses.echo()
-        val = self.window.getstr()
+        val = self.textbox.gettext()
         f = FileWin(val)
         editor.SetActive(f)
         return True
 
     def exit(self):
-        self.window.clear()
-        self.window.refresh()
-        curses.noecho()
+        self.textbox.clear()
 
 
 class FileWin(object):
@@ -86,17 +81,16 @@ class FileWin(object):
             self.editpad.loadfile(self.f)
         except IOError:
             self.f = None
-            self.editpad.pad.addstr("*** ERROR ***: Could not open file")
-            self.editpad.pad.move(2,0)
-            self.editpad.pad.addstr("Push any key to quit to the main menu")
+            popup(self.textwin, ["*** ERROR ***: Could not open file", "Push any key to quit to the main menu"])
 
     def process(self):
-        self.editpad.refresh()
-        char = self.editpad.getch()
-
         if self.f == None: # Failed to open the file
             editor.SetActive(editor.mainmenu)
             return True
+
+        self.editpad.refresh()
+        char = self.editpad.getch()
+
 
         if char == ord('q'):
             editor.SetActive(editor.mainmenu)
@@ -104,6 +98,9 @@ class FileWin(object):
             self.editpad.scroll(-1)
         if char == curses.KEY_DOWN:
             self.editpad.scroll(1)
+        if char == ord('g'):
+            t = Textbox(self.textwin, "Goto Line: ")
+            val = t.gettext()
         return True
 
     def exit(self):
@@ -125,6 +122,8 @@ class FileWin(object):
 
         self.fullwin.refresh()
         self.editpad.refresh()
+
+        self.textwin = unbedwin(editor.mainwin, 7, 12)
 
 
 def embedwin(window, vgap, hgap, vgap2=None, hgap2=None):
@@ -151,10 +150,6 @@ editor = None
 def main(window):
     global editor
     editor = Editor(window)
-
-    startwin = StartWin()
-    editor.SetActive(startwin)
-
     editor.StartMainLoop()
 
 
