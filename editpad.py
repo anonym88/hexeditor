@@ -20,8 +20,6 @@ class EditPad(object):
 
         self.buffers = BufferManager(self.config.columngaps)
 
-        self.filewindow = (0,0)
-
         self._init_streams()
 
     def refresh(self):
@@ -66,7 +64,7 @@ class EditPad(object):
             self.padmanager.set_line(vstart)
             return
 
-        fstart, fend = self.filewindow
+        fend = self.buffers.get_fend()
 
         if fend >= self._lastdataline() + 1:
             # File window can't increase past end of file
@@ -74,13 +72,10 @@ class EditPad(object):
 
         last_line = fend
 
-        current_line = self.buffers.screenToLineSoft(ypos) + fstart
+        current_line = self.buffers.screenToLineSoft(ypos)
         self.move_fwindow(current_line)
 
-        # Reload the now moved filewindow
-        fstart, fend = self.filewindow
-
-        last_screen = self.buffers.lineToScreenStart(last_line - fstart)
+        last_screen = self.buffers.lineToScreenStart(last_line)
         start_screen = last_screen - self.viewH + 1
 
         self.padmanager.set_line(start_screen)
@@ -95,7 +90,7 @@ class EditPad(object):
         vstart = ypos - 1
         vend = vstart + self.viewH
 
-        fstart, fend = self.filewindow
+        fstart = self.buffers.get_fstart()
 
         if fstart <= 0:
             # File window can't decrease before start of file
@@ -105,11 +100,7 @@ class EditPad(object):
 
         self.move_fwindow(current_line)
 
-        # Reload the now moved filewindow
-        fstart, fend = self.filewindow
-
-        start_screen = self.buffers.lineToScreenStart(current_line - fstart)
-
+        start_screen = self.buffers.lineToScreenStart(current_line)
         self.padmanager.set_line(start_screen - 1)
 
     def move_fwindow(self, start):
@@ -130,7 +121,7 @@ class EditPad(object):
         #   in order for the last line to be loaded it has to
         #   be before file_end
 
-        self.filewindow = (file_start, file_end)
+        self.buffers.set_fwindow(file_start, file_end)
 
         file_start_b = file_start * self.config.bytesPerLine
         file_end_b = file_end * self.config.bytesPerLine
