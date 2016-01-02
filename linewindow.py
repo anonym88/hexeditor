@@ -39,52 +39,6 @@ class LineWindowManager(object):
 
         self.floader(byte_win.start, byte_win.end)
 
-    # This function is intended to move the view window by
-    #   small amounts. (If the given offset is larger than
-    #   viewH, then this may result in undefined behavior!)
-    @drawing
-    def change_vwindow(self, offset):
-        #self.padmanager.drawstr(self.vwin.start + 1, 60, str(self.fwin))
-        #self.padmanager.drawstr(self.vwin.start + 1, 90, str(self.vwin))
-
-        # The desired view window
-        new_win = self.vwin + offset
-        new_win = self.full_win.shift_into(new_win)
-
-        # The lines that the new view window will cover
-        line_win = new_win.apply(self.buffers.screenToLine) + self.fwin.start
-
-        if self.fwin.contains(line_win):
-            self.vwin = new_win
-            self.padmanager.set_line(new_win.start)
-
-            self.padmanager.drawstr(self.vwin.start, 95, str(line_win))
-            return
-
-        direction = line_win > self.fwin
-
-        # Get the lines spanned by the current view:
-        orig_lines = self.vwin.apply(self.buffers.screenToLine) + self.fwin.start
-
-        # Move the file window
-        self.move_fwindow(line_win.start)
-
-        offsets = orig_lines - self.fwin.start
-
-        if direction:
-            # The original window must have stopped at a line end
-            vend = self.buffers.lineToScreen(offsets.end)
-            vend += offset
-            vstart = vend - self.viewH
-        else:
-            # The original window must have begun at a line start
-            vstart = self.buffers.lineToScreen(offsets.start)
-            vstart += offset # Add since offset is negative
-            vend = vstart + self.viewH
-
-        self.vwin = _Window(vstart, vend)
-        self.padmanager.set_line(vstart)
-
     def incr_vwindow(self):
         new_win = self.vwin + 1
 
@@ -138,9 +92,14 @@ class LineWindowManager(object):
         if not self.fwin.contains(line_win):
             self.change_fwindow(line)
 
-        start = self.buffers.lineToScreen(line)
-        current = self.vwin.start
-        self.change_vwindow(start - current)
+        start_screen = self.buffers.lineToScreen(line)
+        new_win = _Window(start_screen, start_screen + self.viewH)
+        if new_win.end > self.flen + 1:
+            offset = self.flen + 1 - new_win.end
+            new_win += offset
+
+        self.change_vwindow(new_win.start)
+        self.vwin = new_win
 
 
 class _Window(object):

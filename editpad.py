@@ -76,85 +76,6 @@ class EditPad(object):
         self.buffers.computelens()
         self.buffers.draw(self.padmanager)
 
-    def incr_vwindow(self):
-        ypos = self.padmanager.get_line()
-
-        vstart = ypos + 1
-        vend = vstart + self.viewH
-
-        if vend <= self.buffers.screenend():
-            self.padmanager.set_line(vstart)
-            return
-
-        fend = self.buffers.get_fend()
-
-        if fend >= self._lastdataline() + 1:
-            # File window can't increase past end of file
-            return
-
-        last_line = fend
-
-        current_line = self.buffers.screenToLineSoft(ypos)
-        self.move_fwindow(current_line)
-
-        last_screen = self.buffers.lineToScreenStart(last_line)
-        start_screen = last_screen - self.viewH + 1
-
-        self.padmanager.set_line(start_screen)
-
-    def decr_vwindow(self):
-        ypos = self.padmanager.get_line()
-
-        if ypos > 0:
-            self.padmanager.set_line(ypos - 1)
-            return
-
-        vstart = ypos - 1
-        vend = vstart + self.viewH
-
-        fstart = self.buffers.get_fstart()
-
-        if fstart <= 0:
-            # File window can't decrease before start of file
-            return
-
-        current_line = fstart
-
-        self.move_fwindow(current_line)
-
-        start_screen = self.buffers.lineToScreenStart(current_line)
-        self.padmanager.set_line(start_screen - 1)
-
-    def jump_vwindow(self, line):
-        self.move_fwindow(line)
-        start_screen = self.buffers.lineToScreenStart(line)
-        self.padmanager.set_line(start_screen)
-
-    def move_fwindow(self, start):
-        # Loads a new window of data
-        # Ensures that there is a buffer of lines loaded
-        #   around the lines displayed
-
-        # start: the file line that loading will be based off
-
-        margin = self.viewH
-        file_start = start - margin
-        file_end = start + self.viewH + margin
-
-        flen = self._lastdataline()
-        if file_start < 0: file_start = 0
-        if file_end > flen + 1: file_end = flen + 1
-        # Reasoning for + 1: file_end is a non-inclusive bound,
-        #   in order for the last line to be loaded it has to
-        #   be before file_end
-
-        self.buffers.set_fwindow(file_start, file_end)
-
-        file_start_b = file_start * self.config.bytesPerLine
-        file_end_b = file_end * self.config.bytesPerLine
-
-        self.load_file_piece(file_start_b, file_end_b)
-
     def _lastdataline(self):
         last_byte = len(self.filedata)
         last_line = last_byte // self.config.bytesPerLine
@@ -180,24 +101,6 @@ class EditPad(object):
         self.linestream = linein
         lineout.addOutputStream(bufferstreams[0])
 
-
-def _fitwindow(outer, inner):
-    ostart, oend = outer
-    istart, iend = inner
-
-    innergap = iend - istart
-    outergap = oend - ostart
-
-    if outergap < innergap:
-        return (ostart, oend)
-
-    if istart < ostart:
-        return (ostart, ostart + innergap)
-
-    if iend > oend:
-        return (oend - innergap, oend)
-
-    return (istart, iend)
 
 def _streamzip(streampairs, bufferstreams):
     assert(len(streampairs) == len(bufferstreams))
