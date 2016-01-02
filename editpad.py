@@ -29,12 +29,10 @@ class EditPad(object):
         self.padmanager.refresh()
 
     def scroll(self, val):
-        self.windowmanager.change_vwindow(val)
-        return
         if val == 1:
-            self.incr_vwindow()
+            self.windowmanager.incr_vwindow()
         elif val == -1:
-            self.decr_vwindow()
+            self.windowmanager.decr_vwindow()
 
     def goto(self, val):
         try:
