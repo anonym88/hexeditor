@@ -1,9 +1,13 @@
 import curses
 from buffer import BufferStream
 
+########## Configurable variables ##############
+
+bytesPerLine = 8
+
 ############## Edit Pad Config #################
 class EditPadConfig(object):
-    def __init__(self, bytesPerLine=8, heightcapacity=100):
+    def __init__(self):
         self.bytesPerLine = 8
         self.heightcapacity = 100
         self.columns = []
@@ -54,7 +58,7 @@ def _bytesToHex(val):
     if val > 255 or val < 0:
         return "XX"
 
-    val = hex(val)[2:] # Chop of the inital '0x'
+    val = hex(val)[2:] # Chop off the inital '0x'
     val = val.upper()
     if len(val) == 1:
         val = '0' + val

@@ -4,6 +4,7 @@ from buffer import BufferStream, FileBuffer
 from padmanager import PadManager
 from buffermanager import BufferManager
 from linewindow import LineWindowManager
+from editconfig import bytesPerLine
 
 
 """
@@ -13,11 +14,9 @@ It keeps track of data, scrolls, and draws it to the screen
 class EditPad(object):
     def __init__(self, refwin, padding, config):
         self.config = config
+        bytesPerLine = config.bytesPerLine
 
         self.padmanager = PadManager(refwin, padding, config.heightcapacity)
-
-        # This is here to be in a more global position
-        self.viewH = self.padmanager.viewH
 
         self.buffers = BufferManager(self.config.columngaps)
 
@@ -40,7 +39,7 @@ class EditPad(object):
         except:
             return
 
-        line = byte // self.config.bytesPerLine
+        line = byte // bytesPerLine
 
         self.windowmanager.move_vwindow(line)
 
@@ -55,10 +54,8 @@ class EditPad(object):
         self.windowmanager = LineWindowManager(
             self._lastdataline(),
             self.load_file_piece,
-            self.config.bytesPerLine,
             self.buffers,
-            self.padmanager.set_line,
-            self.viewH)
+            self.padmanager)
 
         self.windowmanager.move_fwindow(0)
         self.padmanager.set_line(0)
@@ -70,14 +67,14 @@ class EditPad(object):
         self.buffers.clear()
 
         self.filedata.dumpToStream(self.forkstream, self.linestream, start, end,
-            width=self.config.bytesPerLine)
+            width=bytesPerLine)
 
         self.buffers.computelens()
         self.buffers.draw(self.padmanager)
 
     def _lastdataline(self):
         last_byte = len(self.filedata)
-        last_line = last_byte // self.config.bytesPerLine
+        last_line = last_byte // bytesPerLine
 
         if last_byte % 8 == 0:
             last_line -= 1

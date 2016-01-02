@@ -1,6 +1,7 @@
+from editconfig import bytesPerLine
 
 class LineWindowManager(object):
-    def __init__(self, flen, floader, bpl, buffers, padmover, viewH):
+    def __init__(self, flen, floader, buffers, padmanager):
 
         self.flen = flen
         self.full_win = _Window(0, flen+1)
@@ -9,10 +10,9 @@ class LineWindowManager(object):
         #   be before file_end
 
         self.floader = floader
-        self.bpl = bpl
         self.buffers = buffers
-        self.padmover = padmover
-        self.viewH = viewH
+        self.padmanager = padmanager
+        self.viewH = padmanager.viewH
 
         self.fwin = _Window(0,0)
         self.vwin = _Window(0,self.viewH)
@@ -25,7 +25,7 @@ class LineWindowManager(object):
 
         self.fwin = self.full_win.compress(fwin)
 
-        byte_win = self.fwin * self.bpl
+        byte_win = self.fwin * bytesPerLine
 
         self.floader(byte_win.start, byte_win.end)
 
@@ -33,7 +33,7 @@ class LineWindowManager(object):
         new_win = self.vwin + 1
 
         if new_win.end <= self.buffers.screenend():
-            self.padmover(new_win.start)
+            self.padmanager.set_line(new_win.start)
             self.vwin = new_win
             return
 
@@ -50,14 +50,14 @@ class LineWindowManager(object):
         last_screen = self.buffers.lineToScreen(last_line - self.fwin.start)
         start_screen = last_screen - self.viewH + 1
 
-        self.padmover(start_screen)
+        self.padmanager.set_line(start_screen)
         self.vwin = _Window(start_screen, start_screen + self.viewH)
 
     def decr_vwindow(self):
         new_win = self.vwin - 1
 
         if new_win.start >= 0:
-            self.padmover(new_win.start)
+            self.padmanager.set_line(new_win.start)
             self.vwin = new_win
             return
 
@@ -70,7 +70,7 @@ class LineWindowManager(object):
         self.move_fwindow(current_line)
 
         start_screen = self.buffers.lineToScreen(current_line - self.fwin.start)
-        self.padmover(start_screen - 1)
+        self.padmanager.set_line(start_screen - 1)
         self.vwin = _Window(start_screen - 1, start_screen + self.viewH - 1)
 
     # This will jump the view window directly to the given
@@ -93,7 +93,7 @@ class LineWindowManager(object):
         # Make sure the view window doesn't end up out of bounds on the bottom
         new_win = full_win.align_shift(new_win)
 
-        self.padmover(new_win.start)
+        self.padmanager.set_line(new_win.start)
         self.vwin = new_win
 
 
