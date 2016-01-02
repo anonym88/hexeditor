@@ -84,21 +84,26 @@ class LineWindowManager(object):
         self.vwin = _Window(start_screen - 1, start_screen + self.viewH - 1)
 
     # This will jump the view window directly to the given
-    #   file line. Note that this cannot end up at a
-    #   particular screen line like change_vwindow can.
+    #   file line.
     def move_vwindow(self, line):
+        if line < 0 or line > self.flen:
+            return
+
         line_win = _Window(line, line + self.viewH)
 
         if not self.fwin.contains(line_win):
-            self.change_fwindow(line)
+            self.move_fwindow(line)
 
-        start_screen = self.buffers.lineToScreen(line)
+        start_screen = self.buffers.lineToScreen(line - self.fwin.start)
         new_win = _Window(start_screen, start_screen + self.viewH)
-        if new_win.end > self.flen + 1:
-            offset = self.flen + 1 - new_win.end
+
+        # Make sure the view window doesn't end up out of bounds on the bottom
+        screen_end = self.buffers.screenend()
+        if new_win.end > screen_end:
+            offset = screen_end - new_win.end
             new_win += offset
 
-        self.change_vwindow(new_win.start)
+        self.padmanager.set_line(new_win.start)
         self.vwin = new_win
 
 

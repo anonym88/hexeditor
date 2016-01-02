@@ -42,8 +42,7 @@ class EditPad(object):
 
         line = byte // self.config.bytesPerLine
 
-        if line >= 0 and line < len(self.filedata):
-            self.windowmanager.move_vwindow(line)
+        self.windowmanager.move_vwindow(line)
 
     def getch(self):
         return self.padmanager.pad.getch()
