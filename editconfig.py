@@ -8,22 +8,13 @@ class EditPadConfig(object):
         self.heightcapacity = 100
         self.columns = []
         self.columngaps = []
-        self.columnlens = []
         self.streams = []
 
     def addcolumn(self, gap):
         self.columngaps.append(gap)
 
-    def addstream(self, instream, outstream, column):
-        self.streams.append((instream, outstream, column))
-
-    def computecolumns(self):
-        assert(len(self.columnlens) == len(self.columngaps))
-        offset = 0
-        for l,g in zip(self.columnlens, self.columngaps):
-            val = (offset, offset+l)
-            self.columns.append(val)
-            offset += l + g
+    def addstream(self, instream, outstream):
+        self.streams.append((instream, outstream))
 
     def __len__(self):
         return len(self.columngaps)
@@ -40,9 +31,9 @@ def CreateDefaultConfig():
     st2 = BufferStream(BytesToByteLine)
     st3 = BufferStream(BytesToNormalStr)
 
-    config.addstream(st1, st1, 0)
-    config.addstream(st2, st2, 1)
-    config.addstream(st3, st3, 2)
+    config.addstream(st1, st1)
+    config.addstream(st2, st2)
+    config.addstream(st3, st3)
 
     return config
 

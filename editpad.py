@@ -96,7 +96,7 @@ class EditPad(object):
             stout.addOutputStream(buff)
 
         # Setup Line Num Stream
-        linein, lineout, _ = self.config.streams[0]
+        linein, lineout = self.config.streams[0]
         self.linestream = linein
         lineout.addOutputStream(bufferstreams[0])
 
@@ -104,7 +104,7 @@ class EditPad(object):
 def _streamzip(streampairs, bufferstreams):
     assert(len(streampairs) == len(bufferstreams))
     for i in xrange(len(streampairs)):
-        stin, stout, _ = streampairs[i]
+        stin, stout = streampairs[i]
         buf = bufferstreams[i]
         yield stin, stout, buf
 
