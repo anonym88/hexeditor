@@ -3,6 +3,7 @@ import curses.ascii
 from buffer import BufferStream, FileBuffer
 from padmanager import PadManager
 from buffermanager import BufferManager
+from linewindow import LineWindowManager
 
 
 """
@@ -22,10 +23,14 @@ class EditPad(object):
 
         self._init_streams()
 
+        self.windowmanager = None
+
     def refresh(self):
         self.padmanager.refresh()
 
     def scroll(self, val):
+        self.windowmanager.change_vwindow(val)
+        return
         if val == 1:
             self.incr_vwindow()
         elif val == -1:
@@ -40,7 +45,7 @@ class EditPad(object):
         line = byte // self.config.bytesPerLine
 
         if line >= 0 and line < len(self.filedata):
-            self.jump_vwindow(line)
+            self.windowmanager.move_vwindow(line)
 
     def getch(self):
         return self.padmanager.pad.getch()
@@ -50,7 +55,15 @@ class EditPad(object):
 
         self.buffers.clear()
 
-        self.move_fwindow(0)
+        self.windowmanager = LineWindowManager(
+            self._lastdataline(),
+            self.load_file_piece,
+            self.config.bytesPerLine,
+            self.buffers,
+            self.padmanager,
+            self.viewH)
+
+        self.windowmanager.move_fwindow(0)
         self.padmanager.set_line(0)
 
 

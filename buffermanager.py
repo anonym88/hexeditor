@@ -21,13 +21,13 @@ class BufferManager(object):
         self.screenpos = []
         self.linepos.clear()
 
-    def lineToScreenStart(self, line):
-        line = line - self._fstart
+    def lineToScreen(self, line):
+        #line = line - self._fstart
         return self.screenpos[line]
 
-    def screenToLineSoft(self, screenLine):
+    def screenToLine(self, screenLine):
         val = bisect_right(self.screenpos, screenLine)
-        return val + self._fstart
+        return val #+ self._fstart
 
     def getBuffers(self):
         return self.buffers

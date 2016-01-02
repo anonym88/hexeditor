@@ -1,18 +1,31 @@
+from functools import wraps
+
+def drawing(func):
+    @wraps(func)
+    def new_func(self, *args, **kwargs):
+        val = func(self, *args, **kwargs)
+        self.padmanager.drawstr(self.vwin.start, 65, str(self.fwin))
+        self.padmanager.drawstr(self.vwin.start, 80, str(self.vwin))
+    return new_func
 
 
 class LineWindowManager(object):
-    def __init__(self, flen, floader, bpl, buffers, padmanager):
-        self.fwin = _Window(0,0)
-
-        self.vwin = _Window(0,0)
+    def __init__(self, flen, floader, bpl, buffers, padmanager, viewH):
 
         self.flen = flen
+        self.full_win = _Window(0, flen+1)
+        # Reasoning for + 1: file_end is a non-inclusive bound,
+        #   in order for the last line to be loaded it has to
+        #   be before file_end
 
         self.floader = floader
-        self.vloader = vloader
         self.bpl = bpl
         self.buffers = buffers
         self.padmanager = padmanager
+        self.viewH = viewH
+
+        self.fwin = _Window(0,0)
+        self.vwin = _Window(0,self.viewH)
 
     def move_fwindow(self, start):
         margin = self.viewH
@@ -20,12 +33,7 @@ class LineWindowManager(object):
         file_end = start + self.viewH + margin
         fwin = _Window(file_start, file_end)
 
-        full_win = _Window(0, self.flen+1)
-        # Reasoning for + 1: file_end is a non-inclusive bound,
-        #   in order for the last line to be loaded it has to
-        #   be before file_end
-
-        self.fwin = full_win.compress(fwin)
+        self.fwin = self.full_win.compress(fwin)
 
         byte_win = self.fwin * self.bpl
 
@@ -34,15 +42,23 @@ class LineWindowManager(object):
     # This function is intended to move the view window by
     #   small amounts. (If the given offset is larger than
     #   viewH, then this may result in undefined behavior!)
+    @drawing
     def change_vwindow(self, offset):
+        #self.padmanager.drawstr(self.vwin.start + 1, 60, str(self.fwin))
+        #self.padmanager.drawstr(self.vwin.start + 1, 90, str(self.vwin))
+
         # The desired view window
         new_win = self.vwin + offset
+        new_win = self.full_win.shift_into(new_win)
 
         # The lines that the new view window will cover
         line_win = new_win.apply(self.buffers.screenToLine) + self.fwin.start
 
         if self.fwin.contains(line_win):
+            self.vwin = new_win
             self.padmanager.set_line(new_win.start)
+
+            self.padmanager.drawstr(self.vwin.start, 95, str(line_win))
             return
 
         direction = line_win > self.fwin
@@ -51,15 +67,15 @@ class LineWindowManager(object):
         orig_lines = self.vwin.apply(self.buffers.screenToLine) + self.fwin.start
 
         # Move the file window
-        self.move_fwindow(self, line_win.start)
+        self.move_fwindow(line_win.start)
 
-        offsets = orig_lines - self.fwin
+        offsets = orig_lines - self.fwin.start
 
         if direction:
             # The original window must have stopped at a line end
             vend = self.buffers.lineToScreen(offsets.end)
             vend += offset
-            vstart = vend - view.H
+            vstart = vend - self.viewH
         else:
             # The original window must have begun at a line start
             vstart = self.buffers.lineToScreen(offsets.start)
@@ -67,7 +83,7 @@ class LineWindowManager(object):
             vend = vstart + self.viewH
 
         self.vwin = _Window(vstart, vend)
-        self.padmanager.set_line(self.vwin.start)
+        self.padmanager.set_line(vstart)
 
     # This will jump the view window directly to the given
     #   file line. Note that this cannot end up at a
@@ -86,7 +102,7 @@ class LineWindowManager(object):
 class _Window(object):
     def __init__(self, start, end):
         if start > end:
-            raise ValueError("Window ends before it starts- %s:%s" % (str(start), str(end))
+            raise ValueError("Window ends before it starts- %s:%s" % (str(start), str(end)))
 
         self.start = start
         self.end = end
@@ -103,6 +119,13 @@ class _Window(object):
             y = self.end
 
         return _Window(x,y)
+
+    def shift_into(self, win):
+        if win.start < self.start:
+            win = win + (self.start - win.start)
+        elif win.end > self.end:
+            win = win + (win.end - self.end)
+        return self.compress(win)
 
     def apply(self, func):
         x = func(self.start)
@@ -122,7 +145,7 @@ class _Window(object):
         return self.__add__(val)
 
     def __rsub__(self, val):
-        return self.__sub__(val)
+        return (-1 * self) + val
 
     def __rmul__(self, val):
         return self.__mul__(val)
@@ -146,6 +169,7 @@ class _Window(object):
     def __lt__(self, win):
         return self.start < win.start
 
-
+    def __str__(self):
+        return "[%i -> %i]" % (self.start, self.end)
 
 
