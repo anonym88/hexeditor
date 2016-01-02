@@ -1,7 +1,7 @@
 
 
 class LineWindowManager(object):
-    def __init__(self, flen, floader, vloader):
+    def __init__(self, flen, floader, bpl, buffers, padmanager):
         self.fwin = _Window(0,0)
 
         self.vwin = _Window(0,0)
@@ -10,6 +10,9 @@ class LineWindowManager(object):
 
         self.floader = floader
         self.vloader = vloader
+        self.bpl = bpl
+        self.buffers = buffers
+        self.padmanager = padmanager
 
     def move_fwindow(self, start):
         margin = self.viewH
@@ -17,84 +20,67 @@ class LineWindowManager(object):
         file_end = start + self.viewH + margin
         fwin = _Window(file_start, file_end)
 
-        flen = self._lastdataline()
-        full_win = _Window(0,flen+1)
+        full_win = _Window(0, self.flen+1)
         # Reasoning for + 1: file_end is a non-inclusive bound,
         #   in order for the last line to be loaded it has to
         #   be before file_end
 
         self.fwin = full_win.compress(fwin)
 
-        byte_win = self.fwin * self.config.bytesPerLine
+        byte_win = self.fwin * self.bpl
 
-        self.load_file_piece(byte_win.start, byte_win.end)
+        self.floader(byte_win.start, byte_win.end)
 
-    def move_vwindow(self, offset):
+    # This function is intended to move the view window by
+    #   small amounts. (If the given offset is larger than
+    #   viewH, then this may result in undefined behavior!)
+    def change_vwindow(self, offset):
+        # The desired view window
         new_win = self.vwin + offset
 
-        line_win = new_win.apply(self.buffers.screenToLine)
+        # The lines that the new view window will cover
+        line_win = new_win.apply(self.buffers.screenToLine) + self.fwin.start
 
-        if file_win.contains(line_win):
+        if self.fwin.contains(line_win):
             self.padmanager.set_line(new_win.start)
             return
 
+        direction = line_win > self.fwin
+
+        # Get the lines spanned by the current view:
+        orig_lines = self.vwin.apply(self.buffers.screenToLine) + self.fwin.start
+
+        # Move the file window
         self.move_fwindow(self, line_win.start)
 
+        offsets = orig_lines - self.fwin
 
+        if direction:
+            # The original window must have stopped at a line end
+            vend = self.buffers.lineToScreen(offsets.end)
+            vend += offset
+            vstart = vend - view.H
+        else:
+            # The original window must have begun at a line start
+            vstart = self.buffers.lineToScreen(offsets.start)
+            vstart += offset # Add since offset is negative
+            vend = vstart + self.viewH
 
-    def incr_vwindow(self):
-        ypos = self.padmanager.get_line()
+        self.vwin = _Window(vstart, vend)
+        self.padmanager.set_line(self.vwin.start)
 
-        vstart = ypos + 1
-        vend = vstart + self.viewH
+    # This will jump the view window directly to the given
+    #   file line. Note that this cannot end up at a
+    #   particular screen line like change_vwindow can.
+    def move_vwindow(self, line):
+        line_win = _Window(line, line + self.viewH)
 
-        if vend <= self.buffers.screenend():
-            self.padmanager.set_line(vstart)
-            return
+        if not self.fwin.contains(line_win):
+            self.change_fwindow(line)
 
-        fend = self.buffers.get_fend()
-
-        if fend >= self._lastdataline() + 1:
-            # File window can't increase past end of file
-            return
-
-        last_line = fend
-
-        current_line = self.buffers.screenToLineSoft(ypos)
-        self.move_fwindow(current_line)
-
-        last_screen = self.buffers.lineToScreenStart(last_line)
-        start_screen = last_screen - self.viewH + 1
-
-        self.padmanager.set_line(start_screen)
-
-    def decr_vwindow(self):
-        ypos = self.padmanager.get_line()
-
-        if ypos > 0:
-            self.padmanager.set_line(ypos - 1)
-            return
-
-        vstart = ypos - 1
-        vend = vstart + self.viewH
-
-        fstart = self.buffers.get_fstart()
-
-        if fstart <= 0:
-            # File window can't decrease before start of file
-            return
-
-        current_line = fstart
-
-        self.move_fwindow(current_line)
-
-        start_screen = self.buffers.lineToScreenStart(current_line)
-        self.padmanager.set_line(start_screen - 1)
-
-    def jump_vwindow(self, line):
-        self.move_fwindow(line)
-        start_screen = self.buffers.lineToScreenStart(line)
-        self.padmanager.set_line(start_screen)
+        start = self.buffers.lineToScreen(line)
+        current = self.vwin.start
+        self.change_vwindow(start - current)
 
 
 class _Window(object):
