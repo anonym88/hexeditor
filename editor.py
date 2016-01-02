@@ -1,6 +1,7 @@
 import curses
 import curses.ascii
-from editpad import EditPad, EditPadConfig, CreateDefaultConfig
+from editpad import EditPad
+from editconfig import EditPadConfig, CreateDefaultConfig
 from textbox import Textbox, popup
 
 
