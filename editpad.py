@@ -57,7 +57,7 @@ class EditPad(object):
             self.load_file_piece,
             self.config.bytesPerLine,
             self.buffers,
-            self.padmanager,
+            self.padmanager.set_line,
             self.viewH)
 
         self.windowmanager.move_fwindow(0)

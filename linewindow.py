@@ -1,6 +1,6 @@
 
 class LineWindowManager(object):
-    def __init__(self, flen, floader, bpl, buffers, padmanager, viewH):
+    def __init__(self, flen, floader, bpl, buffers, padmover, viewH):
 
         self.flen = flen
         self.full_win = _Window(0, flen+1)
@@ -11,7 +11,7 @@ class LineWindowManager(object):
         self.floader = floader
         self.bpl = bpl
         self.buffers = buffers
-        self.padmanager = padmanager
+        self.padmover = padmover
         self.viewH = viewH
 
         self.fwin = _Window(0,0)
@@ -33,7 +33,7 @@ class LineWindowManager(object):
         new_win = self.vwin + 1
 
         if new_win.end <= self.buffers.screenend():
-            self.padmanager.set_line(new_win.start)
+            self.padmover(new_win.start)
             self.vwin = new_win
             return
 
@@ -50,14 +50,14 @@ class LineWindowManager(object):
         last_screen = self.buffers.lineToScreen(last_line - self.fwin.start)
         start_screen = last_screen - self.viewH + 1
 
-        self.padmanager.set_line(start_screen)
+        self.padmover(start_screen)
         self.vwin = _Window(start_screen, start_screen + self.viewH)
 
     def decr_vwindow(self):
         new_win = self.vwin - 1
 
         if new_win.start >= 0:
-            self.padmanager.set_line(new_win.start)
+            self.padmover(new_win.start)
             self.vwin = new_win
             return
 
@@ -70,7 +70,7 @@ class LineWindowManager(object):
         self.move_fwindow(current_line)
 
         start_screen = self.buffers.lineToScreen(current_line - self.fwin.start)
-        self.padmanager.set_line(start_screen - 1)
+        self.padmover(start_screen - 1)
         self.vwin = _Window(start_screen - 1, start_screen + self.viewH - 1)
 
     # This will jump the view window directly to the given
@@ -91,7 +91,7 @@ class LineWindowManager(object):
         # Make sure the view window doesn't end up out of bounds on the bottom
         new_win = full_win.align_shift(new_win)
 
-        self.padmanager.set_line(new_win.start)
+        self.padmover(new_win.start)
         self.vwin = new_win
 
 
