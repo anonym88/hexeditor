@@ -76,8 +76,10 @@ class LineWindowManager(object):
     # This will jump the view window directly to the given
     #   file line.
     def move_vwindow(self, line):
-        if line < 0 or line > self.flen:
-            return
+        if line < 0:
+            return self.move_vwindow(0)
+        if line > self.flen:
+            return self.move_vwindow(self.flen)
 
         line_win = _Window(line, line + self.viewH)
 
