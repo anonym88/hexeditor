@@ -12,9 +12,6 @@ class BufferManager(object):
         self.screenpos = []
         self.linepos = {}
 
-        self._fstart = None
-        self._fend = None
-
     def clear(self):
         for buff in self.buffers:
             buff.clear()
@@ -22,12 +19,10 @@ class BufferManager(object):
         self.linepos.clear()
 
     def lineToScreen(self, line):
-        #line = line - self._fstart
         return self.screenpos[line]
 
     def screenToLine(self, screenLine):
-        val = bisect_right(self.screenpos, screenLine)
-        return val #+ self._fstart
+        return bisect_right(self.screenpos, screenLine)
 
     def getBuffers(self):
         return self.buffers
@@ -81,12 +76,6 @@ class BufferManager(object):
     def set_fwindow(self, fstart, fend):
         self._fstart = fstart
         self._fend = fend
-
-    def get_fstart(self):
-        return self._fstart
-
-    def get_fend(self):
-        return self._fend
 
 
 # takes iter<iter<thing>> and flattens to iter<thing>

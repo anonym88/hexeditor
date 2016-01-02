@@ -1,13 +1,3 @@
-from functools import wraps
-
-def drawing(func):
-    @wraps(func)
-    def new_func(self, *args, **kwargs):
-        val = func(self, *args, **kwargs)
-        self.padmanager.drawstr(self.vwin.start, 65, str(self.fwin))
-        self.padmanager.drawstr(self.vwin.start, 80, str(self.vwin))
-    return new_func
-
 
 class LineWindowManager(object):
     def __init__(self, flen, floader, bpl, buffers, padmanager, viewH):
@@ -96,12 +86,10 @@ class LineWindowManager(object):
 
         start_screen = self.buffers.lineToScreen(line - self.fwin.start)
         new_win = _Window(start_screen, start_screen + self.viewH)
+        full_win = _Window(0, self.buffers.screenend())
 
         # Make sure the view window doesn't end up out of bounds on the bottom
-        screen_end = self.buffers.screenend()
-        if new_win.end > screen_end:
-            offset = screen_end - new_win.end
-            new_win += offset
+        new_win = full_win.align_shift(new_win)
 
         self.padmanager.set_line(new_win.start)
         self.vwin = new_win
@@ -128,17 +116,19 @@ class _Window(object):
 
         return _Window(x,y)
 
-    def shift_into(self, win):
+    # Returns a window that is 'win' shifted so that it fits
+    #   inside of 'self'. This preserves the start end gap,
+    #   unlike compress
+    # If 'win' is larger than 'self', lines the start values up
+    # ex: x=[0 -> 4], y=[3 -> 5]
+    #   x.align_shift(y) = [2 -> 4]
+    #   y.align_shift(x) = [3 -> 7]
+    def align_shift(self, win):
         if win.start < self.start:
             win = win + (self.start - win.start)
         elif win.end > self.end:
-            win = win + (win.end - self.end)
-        return self.compress(win)
-
-    def apply(self, func):
-        x = func(self.start)
-        y = func(self.end)
-        return _Window(x,y)
+            win = win + (self.end - win.end)
+        return win
 
     def __add__(self, val):
         return _Window(self.start + val, self.end + val)
