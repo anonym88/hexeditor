@@ -89,10 +89,12 @@ class EditPad(object):
         self.buffers.clear_plugin()
         fwin = self.windowmanager.fwin
 
+        bpl = editconfig.bytesPerLine
         self.filedata.dumpToStream(self.pluginstream, None,
-            fwin.start, fwin.end,
+            fwin.start * bpl, (fwin.end - 1)*bpl + 1,
             width=editconfig.bytesPerLine)
 
+        self.padmanager.clear()
         self.buffers.draw(self.padmanager)
 
     def _lastdataline(self):
