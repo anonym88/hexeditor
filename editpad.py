@@ -30,9 +30,9 @@ class EditPad(object):
 
     def scroll(self, val):
         if val == 1:
-            self.windowmanager.incr_vwindow()
+            self.windowmanager.incr_cursor()
         elif val == -1:
-            self.windowmanager.decr_vwindow()
+            self.windowmanager.decr_cursor()
 
     def goto(self, val):
         try:
@@ -60,6 +60,7 @@ class EditPad(object):
 
         self.windowmanager.move_fwindow(0)
         self.padmanager.set_line(0)
+        self.padmanager.highlight_line(0)
 
 
     def load_file_piece(self, start, end):

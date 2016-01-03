@@ -17,6 +17,22 @@ class LineWindowManager(object):
         self.fwin = _Window(0,0)
         self.vwin = _Window(0,self.viewH)
 
+        self.cursor = 0
+
+    def decr_cursor(self):
+        if self.cursor <= 0:
+            self.decr_vwindow()
+        else:
+            self.cursor -= 1
+        self.padmanager.highlight_line(self.cursor)
+
+    def incr_cursor(self):
+        if self.cursor >= self.viewH - 1:
+            self.incr_vwindow()
+        else:
+            self.cursor += 1
+        self.padmanager.highlight_line(self.cursor)
+
     def move_fwindow(self, start):
         margin = self.viewH
         file_start = start - margin
