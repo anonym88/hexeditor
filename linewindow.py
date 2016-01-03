@@ -38,9 +38,9 @@ class LineWindowManager(object):
         rng = self.buffers.screenToScreenRange(pos)
         lines = range(*rng)
 
-        self.padmanager.drawstr(self.cursor + self.vwin.start, 80, str(lines))
+        #self.padmanager.drawstr(self.cursor + self.vwin.start, 80, str(lines))
 
-        self.padmanager.highlight_lines(lines)
+        self.padmanager.highlight_lines(lines, pos)
 
     def move_fwindow(self, start):
         margin = self.viewH
@@ -101,6 +101,7 @@ class LineWindowManager(object):
     # This will jump the view window directly to the given
     #   file line.
     def move_vwindow(self, line):
+        # If out of bounds just move to the beginning/end
         if line < 0:
             return self.move_vwindow(0)
         if line > self.flen:
@@ -108,6 +109,7 @@ class LineWindowManager(object):
 
         line_win = _Window(line, line + self.viewH)
 
+        # Load a new piece of file if needed
         if not self.fwin.contains(line_win):
             self.move_fwindow(line)
 
@@ -120,6 +122,11 @@ class LineWindowManager(object):
 
         self.padmanager.set_line(new_win.start)
         self.vwin = new_win
+
+        # Set the highlighting
+        self.cursor = start_screen - self.vwin.start
+        self.do_hl()
+
 
     def current_line(self):
         offset = self.buffers.screenToLine(self.vwin.start)

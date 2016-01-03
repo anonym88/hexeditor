@@ -41,17 +41,23 @@ class PadManager(object):
     def set_line(self, line):
         self.ypos = line
 
-    def highlight_lines(self, pad_lines):
+    def highlight_lines(self, pad_lines, cursor_line):
+        assert(cursor_line in pad_lines)
 
+        # Set currently highlighted to normal
         for line in self.hl_lines:
             self.pad.chgat(line, 0, curses.A_NORMAL)
 
         self.hl_lines = pad_lines
 
+        # Highlight lines
         for line in self.hl_lines:
-            self.pad.chgat(line, 0, curses.A_REVERSE)
+            self.pad.chgat(line, 0, curses.A_BOLD)
 
-        self.pad.move(self.hl_lines[0], 0)
+        # Highlight cursor
+        self.pad.chgat(cursor_line, 0, 1,
+            curses.A_REVERSE)
+        self.pad.move(cursor_line, 0)
 
     def _setlines(self, linenum):
         if linenum <= self.numlines:

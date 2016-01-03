@@ -60,7 +60,7 @@ class EditPad(object):
 
         self.windowmanager.move_fwindow(0)
         self.padmanager.set_line(0)
-        self.padmanager.highlight_lines([0])
+        self.padmanager.highlight_lines([0], 0)
 
 
     def load_file_piece(self, start, end):
