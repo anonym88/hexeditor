@@ -23,6 +23,11 @@ class BufferManager(object):
         self.screenpos = []
         self.linepos.clear()
 
+    def clear_preview(self):
+        self.buffers[2].clear()
+        self.screenpos = []
+        self.linepos.clear()
+
     def lineToScreen(self, line):
         return self.screenpos[line]
 

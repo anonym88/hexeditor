@@ -56,8 +56,7 @@ class EditPad(object):
         self.previewstream.add(current_line, plugin_val)
 
         # Clear the preview buffer
-        preview_buff = self.buffers.getBuffers()[2]
-        preview_buff.clear()
+        self.buffers.clear_preview()
 
         # Redump the file through the stream into the buffer
         fwin = self.windowmanager.fwin
