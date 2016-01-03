@@ -24,14 +24,23 @@ class LineWindowManager(object):
             self.decr_vwindow()
         else:
             self.cursor -= 1
-        self.padmanager.highlight_line(self.cursor)
+        self.do_hl()
 
     def incr_cursor(self):
         if self.cursor >= self.viewH - 1:
             self.incr_vwindow()
         else:
             self.cursor += 1
-        self.padmanager.highlight_line(self.cursor)
+        self.do_hl()
+
+    def do_hl(self):
+        pos = self.cursor + self.vwin.start
+        rng = self.buffers.screenToScreenRange(pos)
+        lines = range(*rng)
+
+        self.padmanager.drawstr(self.cursor + self.vwin.start, 80, str(lines))
+
+        self.padmanager.highlight_lines(lines)
 
     def move_fwindow(self, start):
         margin = self.viewH
@@ -114,7 +123,7 @@ class LineWindowManager(object):
 
     def current_line(self):
         offset = self.buffers.screenToLine(self.vwin.start)
-        return offset + self.fwin.start - 1 # Don't know why this needs a -1 :(
+        return offset + self.fwin.start
 
 
 class _Window(object):

@@ -20,7 +20,7 @@ class PadManager(object):
         self.pad.keypad(True)
         self.pad.scrollok(False)
 
-        self.hl_line = 0
+        self.hl_lines = [ 0 ]
 
     def refresh(self):
         self.pad.refresh(self.ypos, self.xpos,
@@ -41,12 +41,17 @@ class PadManager(object):
     def set_line(self, line):
         self.ypos = line
 
-    def highlight_line(self, screen_line):
-        self.pad.chgat(self.hl_line, 0, curses.A_NORMAL)
-        self.hl_line = screen_line + self.ypos
-        self.pad.chgat(self.hl_line, 0, curses.A_REVERSE)
-        self.pad.move(self.hl_line, 0)
+    def highlight_lines(self, pad_lines):
 
+        for line in self.hl_lines:
+            self.pad.chgat(line, 0, curses.A_NORMAL)
+
+        self.hl_lines = pad_lines
+
+        for line in self.hl_lines:
+            self.pad.chgat(line, 0, curses.A_REVERSE)
+
+        self.pad.move(self.hl_lines[0], 0)
 
     def _setlines(self, linenum):
         if linenum <= self.numlines:

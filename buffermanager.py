@@ -1,6 +1,6 @@
 from itertools import izip_longest, imap
 from buffer import ColumnBuffer
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 
 class BufferManager(object):
     def __init__(self, columngaps):
@@ -26,8 +26,12 @@ class BufferManager(object):
     def lineToScreen(self, line):
         return self.screenpos[line]
 
+    def screenToScreenRange(self, screenLine):
+        line = self.screenToLine(screenLine)
+        return self.screenpos[line], self.screenpos[line+1]
+
     def screenToLine(self, screenLine):
-        return bisect_right(self.screenpos, screenLine)
+        return _largest_lt(self.screenpos, screenLine)
 
     def getBuffers(self):
         return self.buffers
@@ -84,4 +88,12 @@ def _flatten(iterable):
     for inner in iterable:
         for val in inner:
             yield val
+
+def _largest_lt(array, val):
+    x = bisect_left(array, val)
+    if array[x] == val:
+        return x
+    return x - 1
+
+
 
