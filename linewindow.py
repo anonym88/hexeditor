@@ -38,8 +38,6 @@ class LineWindowManager(object):
         rng = self.buffers.screenToScreenRange(pos)
         lines = range(*rng)
 
-        #self.padmanager.drawstr(self.cursor + self.vwin.start, 80, str(lines))
-
         self.padmanager.highlight_lines(lines, pos)
 
     def move_fwindow(self, start):
@@ -115,9 +113,9 @@ class LineWindowManager(object):
 
         start_screen = self.buffers.lineToScreen(line - self.fwin.start)
         new_win = _Window(start_screen, start_screen + self.viewH)
-        full_win = _Window(0, self.buffers.screenend())
 
         # Make sure the view window doesn't end up out of bounds on the bottom
+        full_win = _Window(0, self.buffers.screenend())
         new_win = full_win.align_shift(new_win)
 
         self.padmanager.set_line(new_win.start)
@@ -129,7 +127,8 @@ class LineWindowManager(object):
 
 
     def current_line(self):
-        offset = self.buffers.screenToLine(self.vwin.start)
+        screen_pos = self.cursor + self.vwin.start
+        offset = self.buffers.screenToLine(screen_pos)
         return offset + self.fwin.start
 
 
