@@ -13,11 +13,24 @@ class BufferStream(object):
     def addOutputStream(self, stream):
         self.streams.append(stream)
 
-    def push_token(self, token):
-        new_token = self.processor(token)
+    def push_token(self, token, index):
+        new_token = BufferStream.do_process(
+                        self.processor, token, index)
         if new_token is not None:
             for s in self.streams:
-                s.push_token(new_token)
+                s.push_token(new_token, index)
+
+    @staticmethod
+    def do_process(processor, token, index):
+        if hasattr(processor, "want_index"):
+            want_index = processor.want_index
+        else:
+            want_index = False
+
+        if want_index:
+            return processor(token, index)
+        else:
+            return processor(token)
 
 
 # Currently doesn't do much. This is an abstraction so
@@ -28,17 +41,15 @@ class FileBuffer(object):
         self.infile = infile
         self._flen = None
 
-    def dumpToStream(self, stream, indexstream, start, end, width=8):
+    def dumpToStream(self, stream, start, end, width=8):
         self.infile.seek(start)
         remaining = end - start
 
         toread = width if remaining > width else remaining
         val = self.infile.read(toread)
         while val != '' and remaining > 0:
-            stream.push_token(bytes(val))
-
-            if indexstream is not None:
-                indexstream.push_token(end - remaining)
+            ind = end - remaining
+            stream.push_token(bytes(val), ind)
 
             remaining -= len(val)
 
@@ -58,7 +69,7 @@ class ColumnBuffer(object):
     def __init__(self):
         self.lines = []
 
-    def push_token(self, token):
+    def push_token(self, token, index):
         if isinstance(token, str):
             token = [ token ]
         self.lines.append(token)

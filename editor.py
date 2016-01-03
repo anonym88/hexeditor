@@ -103,9 +103,11 @@ class FileWin(object):
             t = Textbox(self.textwin, "Goto Line: ")
             val = t.gettext()
             self.editpad.goto(val)
-        elif char >= ord('0') or char <= ord('9'):
+        elif char >= ord('0') and char <= ord('9'):
             val = char - ord('0')
             self.editpad.activate_plugin(val)
+        elif char == ord('`'):
+            self.editpad.activate_plugin(-1)
         return True
 
     def exit(self):

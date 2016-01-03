@@ -72,7 +72,8 @@ def _padTo3(word):
         word += ' '
     return word
 
-def IndexToLineNum(val):
-    return hex(val).upper()
+def IndexToLineNum(val, index):
+    return hex(index).upper()
+IndexToLineNum.want_index = True
 
 

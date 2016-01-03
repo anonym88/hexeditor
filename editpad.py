@@ -69,7 +69,7 @@ class EditPad(object):
         self.buffers.clear()
 
         self.filedata.dumpToStream(self.forkstream,
-            self.linestream, start, end,
+            start, end,
             width=editconfig.bytesPerLine)
 
         self.buffers.computelens()
@@ -77,13 +77,16 @@ class EditPad(object):
 
     def activate_plugin(self, index):
         # Validate
-        if index < 0 or index > len(self.plugins):
+        if index < -1 or index > len(self.plugins):
             return
 
         # Get the plugin to activate
         # The 0'th plugin is just empty
+        # The -1'th plugin is ascii preview
         if index == 0:
             plugin = drop_stream
+        elif index == -1:
+            plugin = editconfig.BytesToNormalStr
         else:
             plugin = self.plugins[index - 1]
 
@@ -98,7 +101,7 @@ class EditPad(object):
         fwin = self.windowmanager.fwin
         bpl = editconfig.bytesPerLine
 
-        self.filedata.dumpToStream(self.pluginstream, None,
+        self.filedata.dumpToStream(self.pluginstream,
             fwin.start * bpl, (fwin.end - 1)*bpl + 1,
             width=editconfig.bytesPerLine)
 
@@ -128,18 +131,12 @@ class EditPad(object):
         self.forkstream = stfork
         self.pluginstream = stplugin
 
-        # The first index = line stream, setup separately
-        # The last index of buffers = plugin buffer, also
+        # The last index of buffers = plugin buffer, which is
         #   setup separately
         for stin, stout, buff in _streamzip(
-            self.config.streams[1:], bufferstreams[1:-1]):
+            self.config.streams, bufferstreams[:-1]):
             stfork.addOutputStream(stin)
             stout.addOutputStream(buff)
-
-        # Setup Line Num Stream
-        linein, lineout = self.config.streams[0]
-        self.linestream = linein
-        lineout.addOutputStream(bufferstreams[0])
 
         # Setup Plugin Stream
         stfork.addOutputStream(stplugin)
@@ -163,22 +160,22 @@ def fork_stream(token):
 def drop_stream(token):
     return ''
 
+
+
 # The same as BufferStream, but only supports a single
 #   output stream, and can change its processor
-class MutableBufferStream(object):
+class MutableBufferStream(BufferStream):
     def __init__(self):
         self.processor = None
-        self.stream = None
+        self.streams = []
 
     def set_stream(self, stream):
-        self.stream = stream
+        self.streams = [ stream ]
 
     def set_processor(self, processor):
         self.processor = processor
 
-    def push_token(self, token):
-        new_token = self.processor(token)
-        if new_token is not None:
-            self.stream.push_token(new_token)
+    def addOutputStream(self, stream):
+        raise RuntimeError("Function has been deleted")
 
 
