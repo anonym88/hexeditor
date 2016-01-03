@@ -36,7 +36,9 @@ class FileBuffer(object):
         val = self.infile.read(toread)
         while val != '' and remaining > 0:
             stream.push_token(bytes(val))
-            indexstream.push_token(end - remaining)
+
+            if indexstream is not None:
+                indexstream.push_token(end - remaining)
 
             remaining -= len(val)
 

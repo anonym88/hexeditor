@@ -18,6 +18,11 @@ class BufferManager(object):
         self.screenpos = []
         self.linepos.clear()
 
+    def clear_plugin(self):
+        self.buffers[-1].clear()
+        self.screenpos = []
+        self.linepos.clear()
+
     def lineToScreen(self, line):
         return self.screenpos[line]
 
