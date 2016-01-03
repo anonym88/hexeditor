@@ -57,7 +57,7 @@ class EditPad(object):
         current_line = self.windowmanager.current_line()
 
         # Get the plugin value
-        screen_line = self.windowmanager.current_screenline()
+        screen_line = self.windowmanager.current_bufferline()
         plugin_buff = self.buffers.getBuffers()[-1]
         plugin_val = plugin_buff[screen_line]
 

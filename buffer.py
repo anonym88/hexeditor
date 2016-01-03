@@ -72,7 +72,8 @@ class CachedBufferStream(BufferStream):
         self.mapping[line] = val
 
     def remove(self, line):
-        del self.mapping[line]
+        if line in self.mapping:
+            del self.mapping[line]
 
 
 # Currently doesn't do much. This is an abstraction so
@@ -123,6 +124,8 @@ class ColumnBuffer(object):
         return len(self.lines)
 
     def __getitem__(self, index):
+        if index >= len(self.lines):
+            raise IndexError("Index out of bounds: %s" % index)
         return self.lines[index]
 
     def __iter__(self):
