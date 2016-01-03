@@ -95,14 +95,17 @@ class FileWin(object):
 
         if char == ord('q'):
             editor.SetActive(editor.mainmenu)
-        if char == curses.KEY_UP:
+        elif char == curses.KEY_UP:
             self.editpad.scroll(-1)
-        if char == curses.KEY_DOWN:
+        elif char == curses.KEY_DOWN:
             self.editpad.scroll(1)
-        if char == ord('g'):
+        elif char == ord('g'):
             t = Textbox(self.textwin, "Goto Line: ")
             val = t.gettext()
             self.editpad.goto(val)
+        elif char >= ord('0') or char <= ord('9'):
+            val = char - ord('0')
+            self.editpad.activate_plugin(val)
         return True
 
     def exit(self):
@@ -164,7 +167,9 @@ def launch(plugins):
 
     curses.wrapper(main)
 
+def temp(token):
+    return 'hi'
 
 if __name__ == "__main__":
-    launch([])
+    launch([ temp ])
 

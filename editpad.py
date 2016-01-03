@@ -40,7 +40,7 @@ class EditPad(object):
         except:
             return
 
-        line = byte // bytesPerLine
+        line = byte // editconfig.bytesPerLine
 
         self.windowmanager.move_vwindow(line)
 
@@ -75,7 +75,7 @@ class EditPad(object):
         self.buffers.draw(self.padmanager)
 
     def activate_plugin(self, index):
-        if index < 0 or index >= len(self.plugins):
+        if index < 0 or index > len(self.plugins):
             return
 
         # The 0'th plugin is just empty
@@ -84,7 +84,7 @@ class EditPad(object):
         else:
             plugin = self.plugins[index - 1]
 
-        self.pluginstream.set_stream(plugin)
+        self.pluginstream.set_processor(plugin)
 
         self.buffers.clear_plugin()
         fwin = self.windowmanager.fwin
@@ -97,7 +97,7 @@ class EditPad(object):
 
     def _lastdataline(self):
         last_byte = len(self.filedata)
-        last_line = last_byte // bytesPerLine
+        last_line = last_byte // editconfig.bytesPerLine
 
         if last_byte % 8 == 0:
             last_line -= 1
