@@ -28,6 +28,8 @@ class BufferManager(object):
 
     def screenToScreenRange(self, screenLine):
         line = self.screenToLine(screenLine)
+        if line >= len(self.screenpos) - 1:
+            raise IndexError("Cannot get screen range for the last line in buffers. Input: %s, Line: %s" % (screenLine, line))
         return self.screenpos[line], self.screenpos[line+1]
 
     def screenToLine(self, screenLine):

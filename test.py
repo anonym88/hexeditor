@@ -25,6 +25,8 @@ def validate(char):
         return ord('*')
     if char == curses.KEY_UP:
         return ord('%')
+    if char == ord('\n'):
+        return ord('|')
     return char
 
 def do_thing(char, screen):

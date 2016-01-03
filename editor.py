@@ -108,6 +108,8 @@ class FileWin(object):
             self.editpad.activate_plugin(val)
         elif char == ord('`'):
             self.editpad.activate_plugin(-1)
+        elif char == ord('\n'):
+            self.editpad.set_preview()
         return True
 
     def exit(self):

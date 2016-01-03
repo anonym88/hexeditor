@@ -1,5 +1,5 @@
 import curses
-from buffer import BufferStream
+from buffer import BufferStream, CachedBufferStream
 
 ########## Configurable variables ##############
 
@@ -34,7 +34,7 @@ def CreateDefaultConfig():
 
     st1 = BufferStream(IndexToLineNum)
     st2 = BufferStream(BytesToByteLine)
-    st3 = BufferStream(BytesToNormalStr)
+    st3 = CachedBufferStream(BytesToNormalStr, bytesPerLine)
 
     config.addstream(st1, st1)
     config.addstream(st2, st2)

@@ -44,6 +44,32 @@ class EditPad(object):
 
         self.windowmanager.move_vwindow(line)
 
+    def set_preview(self):
+        current_line = self.windowmanager.current_line()
+
+        # Get the plugin value
+        screen_line = self.windowmanager.current_screenline()
+        plugin_buff = self.buffers.getBuffers()[-1]
+        plugin_val = plugin_buff[screen_line]
+
+        # Add the value to the preview stream
+        self.previewstream.add(current_line, plugin_val)
+
+        # Clear the preview buffer
+        preview_buff = self.buffers.getBuffers()[2]
+        preview_buff.clear()
+
+        # Redump the file through the stream into the buffer
+        fwin = self.windowmanager.fwin
+        bpl = editconfig.bytesPerLine
+        self.filedata.dumpToStream(self.previewstream,
+            fwin.start * bpl, fwin.end * bpl,
+            width=editconfig.bytesPerLine)
+
+        # Redraw
+        self.padmanager.clear()
+        self.buffers.draw(self.padmanager)
+
     def getch(self):
         return self.padmanager.pad.getch()
 
@@ -102,9 +128,8 @@ class EditPad(object):
         bpl = editconfig.bytesPerLine
 
         self.filedata.dumpToStream(self.pluginstream,
-            fwin.start * bpl, (fwin.end - 1)*bpl + 1,
+            fwin.start * bpl, fwin.end * bpl,
             width=editconfig.bytesPerLine)
-
 
         # Redraw everyting
         self.padmanager.clear()
@@ -143,6 +168,9 @@ class EditPad(object):
         stplugin.set_processor(drop_stream)
         plugin_buff = bufferstreams[-1]
         stplugin.set_stream(plugin_buff)
+
+        # Grab the preview stream
+        self.previewstream = self.config.streams[2][0]
 
 
 def _streamzip(streampairs, bufferstreams):

@@ -131,6 +131,9 @@ class LineWindowManager(object):
         offset = self.buffers.screenToLine(screen_pos)
         return offset + self.fwin.start
 
+    def current_screenline(self):
+        return self.cursor + self.vwin.start
+
 
 class _Window(object):
     def __init__(self, start, end):

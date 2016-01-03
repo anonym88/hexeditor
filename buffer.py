@@ -55,14 +55,16 @@ class MutableBufferStream(BufferStream):
 
 # The same as Bufferstream but pulls from a cache if it can
 class CachedBufferStream(BufferStream):
-    def __init__(self, default_processor):
-        super(CachedBufferStream, self).__init__(self, default_processor)
+    def __init__(self, default_processor, bpl):
+        super(CachedBufferStream, self).__init__(default_processor)
 
+        self.bpl = bpl
         self.mapping = {}
 
     def _get_new_token(self, token, index):
-        if index in mapping:
-            return mapping[index]
+        line = index // self.bpl
+        if line in self.mapping:
+            return self.mapping[line]
         return BufferStream.do_process(
             self.processor, token, index)
 
@@ -125,5 +127,4 @@ class ColumnBuffer(object):
 
     def __iter__(self):
         return iter(self.lines)
-
 
