@@ -44,6 +44,15 @@ class EditPad(object):
 
         self.windowmanager.move_vwindow(line)
 
+    def unset_preview(self):
+        current_line = self.windowmanager.current_line()
+
+        # Add the value to the preview stream
+        self.previewstream.remove(current_line)
+
+        # Refresh
+        self._do_preview_redump(current_line)
+
     def set_preview(self):
         current_line = self.windowmanager.current_line()
 
@@ -55,19 +64,16 @@ class EditPad(object):
         # Add the value to the preview stream
         self.previewstream.add(current_line, plugin_val)
 
-        # Clear the preview buffer
+        # Refresh
+        self._do_preview_redump(current_line)
+
+    def _do_preview_redump(self, current_line):
         self.buffers.clear_preview()
+        self._redump_data(self.previewstream)
 
-        # Redump the file through the stream into the buffer
-        fwin = self.windowmanager.fwin
-        bpl = editconfig.bytesPerLine
-        self.filedata.dumpToStream(self.previewstream,
-            fwin.start * bpl, fwin.end * bpl,
-            width=editconfig.bytesPerLine)
+        # Return highlighting
+        self.windowmanager.move_vwindow(current_line)
 
-        # Redraw
-        self.padmanager.clear()
-        self.buffers.draw(self.padmanager)
 
     def getch(self):
         return self.padmanager.pad.getch()
@@ -123,16 +129,7 @@ class EditPad(object):
 
         # Stream the file through the plugin
         self.buffers.clear_plugin()
-        fwin = self.windowmanager.fwin
-        bpl = editconfig.bytesPerLine
-
-        self.filedata.dumpToStream(self.pluginstream,
-            fwin.start * bpl, fwin.end * bpl,
-            width=editconfig.bytesPerLine)
-
-        # Redraw everyting
-        self.padmanager.clear()
-        self.buffers.draw(self.padmanager)
+        self._redump_data(self.pluginstream)
 
         # Adjust the view window
         self.windowmanager.move_vwindow(current_line)
@@ -171,6 +168,17 @@ class EditPad(object):
         # Grab the preview stream
         self.previewstream = self.config.streams[2][0]
 
+    def _redump_data(self, stream):
+        # Redump the file through the stream
+        fwin = self.windowmanager.fwin
+        bpl = editconfig.bytesPerLine
+        self.filedata.dumpToStream(stream,
+            fwin.start * bpl, fwin.end * bpl,
+            width=editconfig.bytesPerLine)
+
+        # Redraw
+        self.padmanager.clear()
+        self.buffers.draw(self.padmanager)
 
 def _streamzip(streampairs, bufferstreams):
     assert(len(streampairs) == len(bufferstreams))

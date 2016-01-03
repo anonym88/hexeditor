@@ -72,7 +72,7 @@ class CachedBufferStream(BufferStream):
         self.mapping[line] = val
 
     def remove(self, line):
-        self.mapping[line]
+        del self.mapping[line]
 
 
 # Currently doesn't do much. This is an abstraction so
