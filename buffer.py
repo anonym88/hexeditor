@@ -14,8 +14,7 @@ class BufferStream(object):
         self.streams.append(stream)
 
     def push_token(self, token, index):
-        new_token = BufferStream.do_process(
-                        self.processor, token, index)
+        new_token = self._get_new_token(token, index)
         if new_token is not None:
             for s in self.streams:
                 s.push_token(new_token, index)
@@ -31,6 +30,47 @@ class BufferStream(object):
             return processor(token, index)
         else:
             return processor(token)
+
+    def _get_new_token(self, token, index):
+        return BufferStream.do_process(
+                self.processor, token, index)
+
+
+# The same as BufferStream, but only supports a single
+#   output stream, and can change its processor
+class MutableBufferStream(BufferStream):
+    def __init__(self):
+        self.processor = None
+        self.streams = []
+
+    def set_stream(self, stream):
+        self.streams = [ stream ]
+
+    def set_processor(self, processor):
+        self.processor = processor
+
+    def addOutputStream(self, stream):
+        raise RuntimeError("Function has been deleted")
+
+
+# The same as Bufferstream but pulls from a cache if it can
+class CachedBufferStream(BufferStream):
+    def __init__(self, default_processor):
+        super(CachedBufferStream, self).__init__(self, default_processor)
+
+        self.mapping = {}
+
+    def _get_new_token(self, token, index):
+        if index in mapping:
+            return mapping[index]
+        return BufferStream.do_process(
+            self.processor, token, index)
+
+    def add(self, line, val):
+        self.mapping[line] = val
+
+    def remove(self, line):
+        self.mapping[line]
 
 
 # Currently doesn't do much. This is an abstraction so

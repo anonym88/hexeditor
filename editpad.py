@@ -1,6 +1,6 @@
 import curses
 import curses.ascii
-from buffer import BufferStream, FileBuffer
+from buffer import BufferStream, MutableBufferStream, FileBuffer
 from padmanager import PadManager
 from buffermanager import BufferManager
 from linewindow import LineWindowManager
@@ -159,23 +159,5 @@ def fork_stream(token):
 
 def drop_stream(token):
     return ''
-
-
-
-# The same as BufferStream, but only supports a single
-#   output stream, and can change its processor
-class MutableBufferStream(BufferStream):
-    def __init__(self):
-        self.processor = None
-        self.streams = []
-
-    def set_stream(self, stream):
-        self.streams = [ stream ]
-
-    def set_processor(self, processor):
-        self.processor = processor
-
-    def addOutputStream(self, stream):
-        raise RuntimeError("Function has been deleted")
 
 
