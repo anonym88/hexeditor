@@ -96,6 +96,10 @@ class LineWindowManager(object):
         self.padmanager.set_line(new_win.start)
         self.vwin = new_win
 
+    def current_line(self):
+        offset = self.buffers.screenToLine(self.vwin.start)
+        return offset + self.fwin.start - 1 # Don't know why this needs a -1 :(
+
 
 class _Window(object):
     def __init__(self, start, end):

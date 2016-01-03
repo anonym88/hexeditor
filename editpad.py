@@ -75,27 +75,40 @@ class EditPad(object):
         self.buffers.draw(self.padmanager)
 
     def activate_plugin(self, index):
+        # Validate
         if index < 0 or index > len(self.plugins):
             return
 
+        # Get the plugin to activate
         # The 0'th plugin is just empty
         if index == 0:
             plugin = drop_stream
         else:
             plugin = self.plugins[index - 1]
 
+        # Push the plugin into the stream
         self.pluginstream.set_processor(plugin)
 
+        # Store current line
+        current_line = self.windowmanager.current_line()
+
+        # Stream the file through the plugin
         self.buffers.clear_plugin()
         fwin = self.windowmanager.fwin
-
         bpl = editconfig.bytesPerLine
+
         self.filedata.dumpToStream(self.pluginstream, None,
             fwin.start * bpl, (fwin.end - 1)*bpl + 1,
             width=editconfig.bytesPerLine)
 
+
+        # Redraw everyting
         self.padmanager.clear()
         self.buffers.draw(self.padmanager)
+
+        # Adjust the view window
+        self.windowmanager.move_vwindow(current_line)
+
 
     def _lastdataline(self):
         last_byte = len(self.filedata)

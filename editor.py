@@ -170,6 +170,9 @@ def launch(plugins):
 def temp(token):
     return 'hi'
 
+def temp2(token):
+    return ["Yo - ", "  bleh"]
+
 if __name__ == "__main__":
-    launch([ temp ])
+    launch([ temp, temp2 ])
 
