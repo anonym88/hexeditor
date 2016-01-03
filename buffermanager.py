@@ -73,10 +73,6 @@ class BufferManager(object):
     def lineend(self):
         return len(self.screenpos)
 
-    def set_fwindow(self, fstart, fend):
-        self._fstart = fstart
-        self._fend = fend
-
 
 # takes iter<iter<thing>> and flattens to iter<thing>
 def _flatten(iterable):

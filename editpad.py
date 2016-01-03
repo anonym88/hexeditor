@@ -12,7 +12,7 @@ The EditPad is the main editor window for the hexeditor.
 It keeps track of data, scrolls, and draws it to the screen
 """
 class EditPad(object):
-    def __init__(self, refwin, padding, config):
+    def __init__(self, refwin, padding, config, plugins):
         self.config = config
         bytesPerLine = config.bytesPerLine
 
@@ -66,8 +66,8 @@ class EditPad(object):
         self.padmanager.clear()
         self.buffers.clear()
 
-        self.filedata.dumpToStream(self.forkstream, self.linestream, start, end,
-            width=bytesPerLine)
+        self.filedata.dumpToStream(self.forkstream,
+            self.linestream, start, end, width=bytesPerLine)
 
         self.buffers.computelens()
         self.buffers.draw(self.padmanager)
@@ -85,10 +85,15 @@ class EditPad(object):
 
         # Setup Main Streams
         stfork = BufferStream(fork_stream)
+        stplugin = MutableBufferStream()
         self.forkstream = stfork
+        self.pluginstream = stplugin
 
+        # The first index = line stream, setup separately
+        # The last index of buffers = plugin buffer, also
+        #   setup separately
         for stin, stout, buff in _streamzip(
-            self.config.streams[1:], bufferstreams[1:]):
+            self.config.streams[1:], bufferstreams[1:-1]):
             stfork.addOutputStream(stin)
             stout.addOutputStream(buff)
 
@@ -96,6 +101,12 @@ class EditPad(object):
         linein, lineout = self.config.streams[0]
         self.linestream = linein
         lineout.addOutputStream(bufferstreams[0])
+
+        # Setup Plugin Stream
+        stfork.addOutputStream(stplugin)
+        stplugin.set_processor(drop_stream)
+        plugin_buff = bufferstreams[-1]
+        stplugin.set_stream(plugin_buff)
 
 
 def _streamzip(streampairs, bufferstreams):
@@ -110,5 +121,25 @@ def _streamzip(streampairs, bufferstreams):
 def fork_stream(token):
     return token
 
+def drop_stream(token):
+    return ''
+
+# The same as BufferStream, but only supports a single
+#   output stream, and can change its processor
+class MutableBufferStream(object):
+    def __init__(self):
+        self.processor = None
+        self.stream = None
+
+    def set_stream(self, stream):
+        self.stream = stream
+
+    def set_processor(self, processor):
+        self.processor = processor
+
+    def push_token(self, token):
+        new_token = self.processor(token)
+        if new_token is not None:
+            self.stream.push_token(new_token)
 
 

@@ -30,6 +30,7 @@ def CreateDefaultConfig():
     config.addcolumn(3)
     config.addcolumn(4)
     config.addcolumn(4)
+    config.addcolumn(4)
 
     st1 = BufferStream(IndexToLineNum)
     st2 = BufferStream(BytesToByteLine)

@@ -120,7 +120,7 @@ class FileWin(object):
         self.boxwin.box()
 
         config = CreateDefaultConfig()
-        self.editpad = EditPad(self.boxwin, 1, config)
+        self.editpad = EditPad(self.boxwin, 1, config, _plugins)
 
         self.fullwin.refresh()
         self.editpad.refresh()
@@ -148,13 +148,23 @@ def unbedwin(window, vgap, hgap, vgap2=None, hgap2=None):
     return curses.newwin(height-(vgap+vgap2), width-(hgap+hgap2), x+vgap, y+hgap)
 
 editor = None
+_plugins = None
 
 def main(window):
     global editor
     editor = Editor(window)
     editor.StartMainLoop()
 
+def launch(plugins):
+    if plugins == None:
+        raise TypeError("plugins cannot be None. Use an empty list if no plugins are desired.")
+
+    global _plugins
+    _plugins = plugins
+
+    curses.wrapper(main)
+
 
 if __name__ == "__main__":
-    curses.wrapper(main)
+    launch([])
 
