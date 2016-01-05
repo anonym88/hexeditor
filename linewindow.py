@@ -33,6 +33,14 @@ class LineWindowManager(object):
             self.cursor += 1
         self.do_hl()
 
+    def move_cursor(self, line):
+        screenpos = self.buffers.lineToScreen(line - self.fwin.start)
+        if screenpos < self.vwin.start or screenpos >= self.vwin.end:
+            self.move_vwindow(line)
+        else:
+            self.cursor = screenpos - self.vwin.start
+            self.do_hl()
+
     def do_hl(self):
         pos = self.cursor + self.vwin.start
         rng = self.buffers.screenToScreenRange(pos)

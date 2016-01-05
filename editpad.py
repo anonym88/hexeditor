@@ -42,7 +42,7 @@ class EditPad(object):
 
         line = byte // editconfig.bytesPerLine
 
-        self.windowmanager.move_vwindow(line)
+        self.windowmanager.move_cursor(line)
 
     def unset_preview(self):
         current_line = self.windowmanager.current_line()
