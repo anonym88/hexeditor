@@ -132,7 +132,7 @@ class EditPad(object):
         self._redump_data(self.pluginstream)
 
         # Adjust the view window
-        self.windowmanager.move_vwindow(current_line)
+        self.windowmanager.move_cursor(current_line)
 
 
     def _lastdataline(self):

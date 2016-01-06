@@ -29,6 +29,8 @@ class BufferManager(object):
         self.linepos.clear()
 
     def lineToScreen(self, line):
+        if line >= len(self.screenpos):
+            raise IndexError("Cannot get screen index for line: %s" % str(line))
         return self.screenpos[line]
 
     def screenToScreenRange(self, screenLine):
