@@ -56,9 +56,9 @@ class LineWindowManager(object):
         self.padmanager.highlight_lines(lines, pos)
 
     def move_fwindow(self, start):
-        margin = self.viewH
+        margin = self.viewH * 2
         file_start = start - margin
-        file_end = start + self.viewH + margin
+        file_end = start + margin
         fwin = _Window(file_start, file_end)
 
         self.fwin = self.full_win.compress(fwin)
@@ -126,10 +126,14 @@ class LineWindowManager(object):
         if not self.fwin.contains(line_win):
             self.move_fwindow(line)
 
-        start_screen = self.buffers.lineToScreen(line - self.fwin.start)
-        new_win = _Window(start_screen, start_screen + self.viewH)
+        screen_pos = self.buffers.lineToScreen(line - self.fwin.start)
 
-        # Make sure the view window doesn't end up out of bounds on the bottom
+        # Center the window around the line
+        margin = self.viewH / 2
+        new_win = _Window(screen_pos - margin, screen_pos - margin + self.viewH)
+
+        # Make sure the view window doesn't end up out of
+        #   bounds on the top or bottom
         full_win = _Window(0, self.buffers.screenend())
         new_win = full_win.align_shift(new_win)
 
@@ -137,7 +141,7 @@ class LineWindowManager(object):
         self.vwin = new_win
 
         # Set the highlighting
-        self.cursor = start_screen - self.vwin.start
+        self.cursor = screen_pos - self.vwin.start
         self.do_hl()
 
 
