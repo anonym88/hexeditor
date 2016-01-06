@@ -3,6 +3,7 @@ import curses.ascii
 from editpad import EditPad
 from editconfig import EditPadConfig, CreateDefaultConfig
 from textbox import Textbox, popup
+from debugger import debug_context
 
 
 class Editor(object):
@@ -171,7 +172,8 @@ def launch(plugins):
     global _plugins
     _plugins = plugins
 
-    curses.wrapper(main)
+    with debug_context():
+        curses.wrapper(main)
 
 def temp(token):
     return 'hi'

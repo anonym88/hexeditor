@@ -72,7 +72,7 @@ class EditPad(object):
         self._redump_data(self.previewstream)
 
         # Return highlighting
-        self.windowmanager.move_vwindow(current_line)
+        self.windowmanager.move_cursor(current_line)
 
 
     def getch(self):
