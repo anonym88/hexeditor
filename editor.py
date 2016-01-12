@@ -181,6 +181,9 @@ def temp(token):
 def temp2(token):
     return ["Yo - ", "  bleh"]
 
+import arm_plugin
+
+
 if __name__ == "__main__":
-    launch([ temp, temp2 ])
+    launch([ temp, temp2, arm_plugin.process ])
 
